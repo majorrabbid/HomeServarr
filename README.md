@@ -1,1 +1,344 @@
 # HomeServarr
+Perfect 👍 — here’s a **ready-to-paste Markdown document** you can drop directly into OneNote, Confluence, or GitHub.
+It includes everything you’ve built (Proxmox host, *arr* stack, Plex) and can fully reproduce your setup from scratch.
+
+---
+
+````markdown
+# 🧩 Proxmox + Arr Stack + Plex — Full Build & Recovery Guide
+
+_Last verified: Nov 2025 — works on Proxmox VE 9 + Debian 12 LXCs_
+
+---
+
+## 1️⃣  Overview
+End-to-end media automation stack:
+
+| Layer | Component | Purpose |
+|--------|------------|----------|
+| **Host (Proxmox)** | Debian 12 | Base virtualization + shared media SSD |
+| **LXC 102** | `arr` | qBittorrent + Radarr + Sonarr + Prowlarr + Bazarr + Overseerr |
+| **LXC 101** | `plex` | Plex Media Server |
+| **Shared Mount** | `/mnt/media` | Movies / TV / Downloads (shared across containers) |
+
+---
+
+## 2️⃣  Proxmox Host Setup
+
+### 2.1 Mount external media SSD
+```bash
+mkdir -p /mnt/media
+lsblk                      # identify device (e.g., /dev/sdb1)
+blkid /dev/sdb1            # note UUID
+echo "/dev/sdb1 /mnt/media ext4 defaults 0 2" >> /etc/fstab
+mount -a
+chown -R nobody:nogroup /mnt/media
+chmod -R 775 /mnt/media
+````
+
+### 2.2 Create LXCs
+
+| ID  | Name | Purpose          | Mounts                    |
+| --- | ---- | ---------------- | ------------------------- |
+| 101 | plex | Media playback   | `/mnt/media → /mnt/media` |
+| 102 | arr  | Automation stack | `/mnt/media → /mnt/media` |
+
+Example CLI:
+
+```bash
+pct create 102 local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst \
+  -hostname arr -rootfs local-lvm:8 -memory 4096 -cores 2 \
+  -net0 name=eth0,bridge=vmbr0,ip=dhcp \
+  -mp0 /mnt/media,mp=/mnt/media
+
+pct create 101 local:vztmpl/debian-12-standard_12.2-1_amd64.tar.zst \
+  -hostname plex -rootfs local-lvm:8 -memory 2048 -cores 2 \
+  -net0 name=eth0,bridge=vmbr0,ip=dhcp \
+  -mp0 /mnt/media,mp=/mnt/media -features nesting=1
+```
+
+---
+
+## 3️⃣  LXC 102 → Arr Stack
+
+### 3.1 Install Docker & Compose
+
+```bash
+apt update && apt install -y docker docker-compose git
+systemctl enable --now docker
+```
+
+### 3.2 Directory structure
+
+```
+/opt/arr/
+├── docker-compose.yml
+└── (app configs created on first run)
+```
+
+### 3.3 docker-compose.yml
+
+```yaml
+x-env: &env
+  PUID: "1000"
+  PGID: "1000"
+  TZ: "Australia/Melbourne"
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment: *env
+    volumes:
+      - /opt/arr/prowlarr:/config
+      - /mnt/media:/mnt/media
+    ports:
+      - "9696:9696"
+    <<: *restart
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment: *env
+    volumes:
+      - /opt/arr/radarr:/config
+      - /mnt/media/movies:/movies
+      - /mnt/media/downloads:/downloads
+    ports:
+      - "7878:7878"
+    <<: *restart
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment: *env
+    volumes:
+      - /opt/arr/sonarr:/config
+      - /mnt/media/tv:/tv
+      - /mnt/media/downloads:/downloads
+    ports:
+      - "8989:8989"
+    <<: *restart
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment: *env
+    volumes:
+      - /opt/arr/bazarr:/config
+      - /mnt/media:/mnt/media
+    ports:
+      - "6767:6767"
+    <<: *restart
+
+  overseerr:
+    image: sctx/overseerr:latest
+    container_name: overseerr
+    environment:
+      <<: *env
+      LOG_LEVEL: "info"
+    volumes:
+      - /opt/arr/overseerr:/app/config
+    ports:
+      - "5055:5055"
+    <<: *restart
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      UMASK: "002"
+      WEBUI_PORT: "8080"
+    volumes:
+      - /opt/arr/qbittorrent:/config
+      - /mnt/media/downloads:/downloads
+      - /mnt/media:/mnt/media
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    restart: unless-stopped
+```
+
+### 3.4 Start stack
+
+```bash
+cd /opt/arr
+docker compose up -d
+docker ps
+```
+
+### 3.5 User & permissions
+
+```bash
+useradd -u 1000 -m mediauser
+chown -R 1000:1000 /mnt/media
+chmod -R 775 /mnt/media
+```
+
+---
+
+## 4️⃣  LXC 101 → Plex Server
+
+### 4.1 Install Plex
+
+```bash
+apt update
+apt install apt-transport-https curl gnupg -y
+curl https://downloads.plex.tv/plex-keys/PlexSign.key | gpg --dearmor | tee /etc/apt/trusted.gpg.d/plex.gpg >/dev/null
+echo deb https://downloads.plex.tv/repo/deb public main | tee /etc/apt/sources.list.d/plexmediaserver.list
+apt update && apt install plexmediaserver -y
+systemctl enable --now plexmediaserver
+```
+
+### 4.2 Web Access
+
+`http://<plex-container-IP>:32400/web`
+
+---
+
+## 5️⃣  Media Folder Layout
+
+```
+/mnt/media/
+├── downloads/
+│   ├── incomplete/
+│   └── complete/
+├── movies/
+│   └── Tron – Ares (2025)/Tron – Ares (2025) WEBDL-1080p.mkv
+├── tv/
+└── anime/
+```
+
+All lowercase folder names; owned by UID 1000 with 775 permissions.
+
+---
+
+## 6️⃣  Application Configuration Summary
+
+### qBittorrent
+
+* Web UI port 8080
+* Incomplete → `/downloads/incomplete`
+* Categories:
+
+  * `radarr` → `/downloads/radarr`
+  * `sonarr` → `/downloads/sonarr`
+
+### Prowlarr
+
+* Add indexers (1337x, EZTV, YTS, TorrentGalaxy etc.)
+* Add Apps → Sonarr & Radarr via API Key
+* Tag categories appropriately
+
+### Radarr
+
+* Download Client → qBittorrent (port 8080, category `radarr`)
+* Root Folder → `/movies`
+* Completed Download Handling ✔ enabled
+
+### Sonarr
+
+* Download Client → qBittorrent (category `sonarr`)
+* Root Folder → `/tv`
+* Completed Download Handling ✔ enabled
+
+### Bazarr
+
+* Movies path → `/movies`
+* TV path → `/tv`
+
+### Overseerr
+
+* Connect to Radarr & Sonarr via their API keys
+* Default root folders → `/movies` and `/tv`
+
+### Plex
+
+* Library type **Movies** → `/mnt/media/movies`
+* Library type **TV Shows** → `/mnt/media/tv`
+* Agent → Plex Movie or TMDb
+* Scanner → Plex Movie Scanner
+
+---
+
+## 7️⃣  Permissions Recap
+
+```bash
+chmod -R 755 /mnt/media
+find /mnt/media -type d -exec chmod +x {} \;
+```
+
+Plex (`uid 999`) and mediauser (`uid 1000`) both have read access.
+
+---
+
+## 8️⃣  Maintenance & Troubleshooting
+
+| Issue                        | Fix                                                                                                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| “Permission Denied” in qB    | `chown -R 1000:1000 /mnt/media/downloads`                                                                                                                                           |
+| Radarr “Path does not exist” | Check lowercase paths and compose mounts                                                                                                                                            |
+| Plex library empty           | Recreate library pointing to `/mnt/media/movies`                                                                                                                                    |
+| Scanner crash                | Clear cache:<br>`systemctl stop plexmediaserver`<br>`rm -rf /var/lib/plexmediaserver/Library/Application\ Support/Plex\ Media\ Server/Cache/*`<br>`systemctl start plexmediaserver` |
+
+---
+
+## 9️⃣  Rebuild Procedure
+
+1. Recreate both LXCs (IDs 101 & 102) using the commands above.
+2. Mount `/mnt/media` in both.
+3. Copy `/opt/arr/docker-compose.yml` back (or restore from backup).
+4. `docker compose up -d` to start services.
+5. Reinstall Plex and add libraries.
+6. Verify `/mnt/media/movies` and `/mnt/media/tv` are scanned.
+
+---
+
+## 🔒  Optional Automation Scripts
+
+**arr_setup.sh**
+
+```bash
+#!/bin/bash
+apt update && apt install -y docker docker-compose git
+mkdir -p /opt/arr && cd /opt/arr
+# Copy docker-compose.yml from backup location here
+docker compose up -d
+```
+
+**plex_setup.sh**
+
+```bash
+#!/bin/bash
+apt update
+apt install apt-transport-https curl gnupg -y
+curl https://downloads.plex.tv/plex-keys/PlexSign.key | gpg --dearmor | tee /etc/apt/trusted.gpg.d/plex.gpg >/dev/null
+echo deb https://downloads.plex.tv/repo/deb public main | tee /etc/apt/sources.list.d/plexmediaserver.list
+apt update && apt install plexmediaserver -y
+systemctl enable --now plexmediaserver
+```
+
+---
+
+✅ **End-state verification**
+
+* `docker ps` → all 6 services running
+* Plex web UI shows movies and TV after scan
+* qBittorrent downloads into `/downloads` and Radarr/Sonarr import automatically
+
+---
+
+*Keep this file in OneNote or GitHub; it’s a full blueprint for your PVE media server.*
+
+```
+
+---
+
+Would you like me to bundle the two small scripts (`arr_setup.sh` and `plex_setup.sh`) as downloadable `.sh` files too (so you can drop them into your backups folder)?
+```
