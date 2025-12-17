@@ -729,3 +729,120 @@ This README reflects the current working state of the lab: Proxmox host, Plex + 
 
 ```
 ```
+
+
+
+**Disk Space Toolbox**
+
+---
+
+## 📌 1. Overall disk space (top-level)
+
+**This is your first check, always.**
+
+```bash
+df -h /mnt/media
+```
+
+---
+
+## 📌 2. What’s consuming space (top folders)
+
+**Shows where the space is actually going.**
+
+```bash
+du -h --max-depth=1 /mnt/media | sort -h
+```
+
+---
+
+## 📌 3. TV library breakdown (per series)
+
+**Best command you ran today.**
+
+```bash
+du -h --max-depth=1 /mnt/media/tv | sort -h
+```
+
+---
+
+## 📌 4. Largest series only (quick focus)
+
+```bash
+du -h --max-depth=1 /mnt/media/tv/* | sort -h | tail
+```
+
+---
+
+## 📌 5. Downloads cleanup view
+
+**See what’s safe to delete.**
+
+```bash
+du -h --max-depth=1 /mnt/media/downloads | sort -h
+```
+
+---
+
+## 📌 6. Find large files anywhere (emergency)
+
+```bash
+find /mnt/media -type f -size +5G -exec ls -lh {} \; | sort -k5 -h
+```
+
+---
+
+## 📌 7. Check incomplete downloads
+
+```bash
+ls -lah /mnt/media/downloads/incomplete
+```
+
+---
+
+## 📌 8. Remove empty folders (safe housekeeping)
+
+```bash
+find /mnt/media -type d -empty -delete
+```
+
+---
+
+## 📌 9. Check for deleted-but-still-open files
+
+(When space doesn’t free after deletes)
+
+```bash
+lsof | grep /mnt/media | grep deleted
+```
+
+---
+
+## 📌 10. Flush writes after heavy deletes (good practice)
+
+```bash
+sync
+```
+
+---
+
+## 🧠 **One-line “health check” (bookmark this)**
+
+```bash
+df -h /mnt/media && du -h --max-depth=1 /mnt/media/tv | sort -h
+```
+
+This tells you in **one glance**:
+
+* Are we safe?
+* What’s growing?
+
+---
+
+## 🛡️ Suggested personal rules (based on today)
+
+* ⚠️ **85%** → review
+* 🚨 **90%** → delete / trim
+* ❌ **100%** → emergency mode (what you just handled)
+
+---
