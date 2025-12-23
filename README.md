@@ -491,7 +491,33 @@ You can then expose `/var/log/lxc_patch_summary.log` to your Homepage LXC (read-
 
 ---
 
-## 13. Troubleshooting Notes
+### 12.2. Proxmox Host Patching (Monthly)
+The PVE host itself is patched monthly via a separate script.
+
+See [scripts/patch_pve_host.sh](scripts/patch_pve_host.sh).
+
+Schedule (via `crontab -l` on host):
+`0 3 1 * * /usr/local/bin/patch_pve_host.sh >> /var/log/pve_host_patch.cron.log 2>&1`
+
+---
+
+## 13. Disk Monitoring & Auto-Prune (LXC 102)
+
+To prevent the disk from filling up, the `arr` LXC (102) runs a custom monitoring script:
+[scripts/media_prune_and_alert.sh](scripts/media_prune_and_alert.sh).
+
+**Logic:**
+1.  Checks usage of `/mnt/media`.
+2.  **> 85%**: Sends warning alert (ntfy).
+3.  **> 90%**: Sends critical alert AND triggers **Auto-Prune**:
+    *   **Sonarr**: Deletes seasons older than 60 days (ended series only).
+    *   **Radarr**: Deletes unmonitored movies older than 120 days.
+
+**Note on Setup**: The script in this repo has API keys redacted. You must configure them in `/usr/local/bin/media_prune_and_alert.sh` inside the LXC.
+
+---
+
+## 14. Troubleshooting Notes
 
 A few “war story” gotchas that are now encoded into this design:
 
