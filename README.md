@@ -115,11 +115,16 @@ Current key LXCs:
 | 102  | `arr`                | Docker host for qBittorrent + *arr stack* | Only LXC that runs Docker             |
 | 103  | `pihole`             | Pi-hole + Unbound recursive DNS           | DNS for lab + blocking                |
 | 104  | `unifi`              | UniFi Network Application                 | Manages network gear                  |
+| 105  | `n8n`                | n8n Workflow Automation                   | Low-code automation                   |
 | 106  | `twingate-connector` | Twingate zero-trust connector             | Remote access                         |
+| 107  | `patchmon`           | Patch Monitor                             | Updates & Monitoring                  |
 | 108  | `homepage`           | Homepage dashboard                        | Reads summary logs, links to services |
 | 109  | `teamspeak-server`   | TeamSpeak voice server                    | Voice/chat for the family             |
+| 110  | `homebridge`         | Homebridge                                | Apple HomeKit integration             |
+| 111  | `immich`             | Immich                                    | Self-hosted photo backup              |
+| 112  | `grafana`            | Grafana                                   | Metrics & Dashboards                  |
 
-(Additional “lab” LXCs like `n8n`, `homebridge`, `immich`, `haos` etc. are out of scope for this README.)
+(Additional “lab” LXCs are now documented above.)
 
 ---
 
