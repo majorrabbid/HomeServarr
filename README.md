@@ -10,6 +10,8 @@ _Last verified: Nov 2025 (Proxmox VE 9, Debian 12 host, Ubuntu 24.04 LXCs)._
 
 ## 1. High-Level Architecture
 
+> 🎨 **Interactive Visualization**: View the [interactive architecture diagram](docs/architecture.html) for an explorable view of all LXCs, Docker containers, and scripts.
+
 ```mermaid
 flowchart LR
     subgraph PVE["Proxmox VE Host"]

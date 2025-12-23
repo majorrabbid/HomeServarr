@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeServarr Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 1.1rem;
+        }
+
+        .architecture-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .layer-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .layer-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .layer-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .layer-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .lxc-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lxc-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .lxc-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .lxc-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .lxc-card.expanded {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .lxc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .lxc-id {
+            font-size: 0.85rem;
+            color: #667eea;
+            font-weight: 600;
+            background: rgba(102, 126, 234, 0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+        }
+
+        .lxc-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .lxc-purpose {
+            color: #a0a0a0;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .lxc-details {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .lxc-card.expanded .lxc-details {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .docker-container {
+            background: rgba(33, 150, 243, 0.1);
+            border-left: 3px solid #2196F3;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .docker-container:hover {
+            background: rgba(33, 150, 243, 0.2);
+            transform: translateX(5px);
+        }
+
+        .docker-name {
+            font-weight: 600;
+            color: #64B5F6;
+            margin-bottom: 4px;
+        }
+
+        .docker-port {
+            font-size: 0.85rem;
+            color: #90CAF9;
+            font-family: 'Courier New', monospace;
+        }
+
+        .script-item {
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 3px solid #4CAF50;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .script-item:hover {
+            background: rgba(76, 175, 80, 0.2);
+            transform: translateX(5px);
+        }
+
+        .script-name {
+            font-weight: 600;
+            color: #81C784;
+            margin-bottom: 4px;
+        }
+
+        .script-desc {
+            font-size: 0.85rem;
+            color: #A5D6A7;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-right: 6px;
+            margin-top: 6px;
+        }
+
+        .tag.docker { background: rgba(33, 150, 243, 0.2); color: #64B5F6; }
+        .tag.native { background: rgba(156, 39, 176, 0.2); color: #BA68C8; }
+        .tag.script { background: rgba(76, 175, 80, 0.2); color: #81C784; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .expand-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .lxc-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧩 HomeServarr</h1>
+            <p class="subtitle">Proxmox Home Lab - Interactive Architecture</p>
+        </header>
+
+        <div class="layer-selector">
+            <button class="layer-btn active" data-layer="all">All Layers</button>
+            <button class="layer-btn" data-layer="lxc">LXC Containers</button>
+            <button class="layer-btn" data-layer="docker">Docker Services</button>
+            <button class="layer-btn" data-layer="scripts">Automation Scripts</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">12</div>
+                <div class="stat-label">LXC Containers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Docker Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Automation Scripts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">12GB</div>
+                <div class="stat-label">Total RAM</div>
+            </div>
+        </div>
+
+        <div class="architecture-view" id="architecture">
+            <!-- LXC Cards will be inserted here by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        const lxcData = [
+            {
+                id: 101,
+                name: 'plex',
+                purpose: 'Plex Media Server',
+                type: 'native',
+                details: 'Streams media to devices. Reads from /mnt/media shared storage.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 102,
+                name: 'arr',
+                purpose: 'Docker host for *arr stack',
+                type: 'docker',
+                details: 'Only LXC running Docker. Hosts all media automation services.',
+                scripts: [
+                    { name: 'media_prune_and_alert.sh', desc: 'Auto-prunes media when disk > 90%' }
+                ],
+                docker: [
+                    { name: 'qBittorrent', port: '8080' },
+                    { name: 'Radarr', port: '7878' },
+                    { name: 'Sonarr', port: '8989' },
+                    { name: 'Prowlarr', port: '9696' },
+                    { name: 'Bazarr', port: '6767' },
+                    { name: 'Overseerr', port: '5055' }
+                ]
+            },
+            {
+                id: 103,
+                name: 'pihole',
+                purpose: 'Pi-hole + Unbound DNS',
+                type: 'native',
+                details: 'Network-wide ad blocking with recursive DNS resolver.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 104,
+                name: 'unifi',
+                purpose: 'UniFi Network Application',
+                type: 'native',
+                details: 'Manages UniFi network equipment.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 105,
+                name: 'n8n',
+                purpose: 'n8n Workflow Automation',
+                type: 'native',
+                details: 'Low-code automation platform.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 106,
+                name: 'twingate-connector',
+                purpose: 'Twingate Zero-Trust Connector',
+                type: 'native',
+                details: 'Secure remote access to home network.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 107,
+                name: 'patchmon',
+                purpose: 'Patch Monitor',
+                type: 'native',
+                details: 'Monitors system updates and patches.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 108,
+                name: 'homepage',
+                purpose: 'Homepage Dashboard',
+                type: 'native',
+                details: 'Central dashboard linking all services.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 109,
+                name: 'teamspeak-server',
+                purpose: 'TeamSpeak Voice Server',
+                type: 'native',
+                details: 'Voice chat server for family.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 110,
+                name: 'homebridge',
+                purpose: 'Homebridge',
+                type: 'native',
+                details: 'Apple HomeKit integration.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 111,
+                name: 'immich',
+                purpose: 'Immich Photo Backup',
+                type: 'native',
+                details: 'Self-hosted photo and video backup.',
+                scripts: [],
+                docker: []
+            },
+            {
+                id: 112,
+                name: 'grafana',
+                purpose: 'Grafana Metrics & Dashboards',
+                type: 'native',
+                details: 'Visualization and monitoring dashboards.',
+                scripts: [],
+                docker: []
+            }
+        ];
+
+        const hostScripts = [
+            { name: 'patch_all_containers.sh', desc: 'Weekly LXC patching (Sundays 2am)' },
+            { name: 'patch_pve_host.sh', desc: 'Monthly host patching (1st of month)' }
+        ];
+
+        function renderLXCs(filter = 'all') {
+            const container = document.getElementById('architecture');
+            container.innerHTML = '';
+
+            lxcData.forEach(lxc => {
+                if (filter === 'docker' && lxc.docker.length === 0) return;
+                if (filter === 'scripts' && lxc.scripts.length === 0) return;
+
+                const card = document.createElement('div');
+                card.className = 'lxc-card';
+                card.dataset.lxcId = lxc.id;
+
+                let dockerHTML = '';
+                if (lxc.docker.length > 0) {
+                    dockerHTML = `
+                        <div class="section-title">🐳 Docker Containers</div>
+                        ${lxc.docker.map(d => `
+                            <div class="docker-container">
+                                <div class="docker-name">${d.name}</div>
+                                <div class="docker-port">Port: ${d.port}</div>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+
+                let scriptsHTML = '';
+                if (lxc.scripts.length > 0) {
+                    scriptsHTML = `
+                        <div class="section-title">📜 Scripts</div>
+                        ${lxc.scripts.map(s => `
+                            <div class="script-item">
+                                <div class="script-name">${s.name}</div>
+                                <div class="script-desc">${s.desc}</div>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="lxc-header">
+                        <span class="lxc-id">LXC ${lxc.id}</span>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <div class="lxc-name">${lxc.name}</div>
+                    <div class="lxc-purpose">${lxc.purpose}</div>
+                    <div>
+                        <span class="tag ${lxc.type}">${lxc.type === 'docker' ? 'Docker Host' : 'Native'}</span>
+                        ${lxc.docker.length > 0 ? `<span class="tag docker">${lxc.docker.length} containers</span>` : ''}
+                        ${lxc.scripts.length > 0 ? `<span class="tag script">${lxc.scripts.length} scripts</span>` : ''}
+                    </div>
+                    <div class="lxc-details">
+                        <p style="margin-bottom: 15px; color: #c0c0c0;">${lxc.details}</p>
+                        ${dockerHTML}
+                        ${scriptsHTML}
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    const wasExpanded = card.classList.contains('expanded');
+                    document.querySelectorAll('.lxc-card').forEach(c => c.classList.remove('expanded'));
+                    if (!wasExpanded) {
+                        card.classList.add('expanded');
+                    }
+                });
+
+                container.appendChild(card);
+            });
+
+            // Add host scripts card if showing scripts
+            if (filter === 'all' || filter === 'scripts') {
+                const hostCard = document.createElement('div');
+                hostCard.className = 'lxc-card';
+                hostCard.innerHTML = `
+                    <div class="lxc-header">
+                        <span class="lxc-id">PVE HOST</span>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <div class="lxc-name">Proxmox Host</div>
+                    <div class="lxc-purpose">Host-level automation</div>
+                    <div>
+                        <span class="tag script">${hostScripts.length} scripts</span>
+                    </div>
+                    <div class="lxc-details">
+                        <div class="section-title">📜 Host Scripts</div>
+                        ${hostScripts.map(s => `
+                            <div class="script-item">
+                                <div class="script-name">${s.name}</div>
+                                <div class="script-desc">${s.desc}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                hostCard.addEventListener('click', () => {
+                    const wasExpanded = hostCard.classList.contains('expanded');
+                    document.querySelectorAll('.lxc-card').forEach(c => c.classList.remove('expanded'));
+                    if (!wasExpanded) {
+                        hostCard.classList.add('expanded');
+                    }
+                });
+                container.appendChild(hostCard);
+            }
+        }
+
+        // Layer selector
+        document.querySelectorAll('.layer-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderLXCs(btn.dataset.layer);
+            });
+        });
+
+        // Initial render
+        renderLXCs();
+    </script>
+</body>
+</html>
