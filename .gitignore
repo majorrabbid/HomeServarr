@@ -1,0 +1,13 @@
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Node (Homepage)
+node_modules/
+.npm/
+
+# Docker
+.env
+
+# Logs
+*.log

@@ -1,15 +1,5 @@
-Here’s a complete **GitHub-ready `README.md`** for your current setup, assuming:
 
-* Proxmox host
-* Unprivileged LXCs
-* **Only `102 (arr)` runs Docker** (everything else is native in its own LXC)
-* Core documented stack: **Plex, Arr, Pi-hole, Homepage, UniFi, Twingate Connector, TeamSpeak**
 
-You can paste this straight into your repo and tweak any hostnames/IPs.
-
----
-
-````markdown
 # 🧩 Proxmox Home Lab – Media, Networking & Automation Stack
 
 > Proxmox VE + unprivileged LXCs + a single Docker host (`arr`) running the full *arr stack* (qBittorrent, Radarr, Sonarr, Prowlarr, Bazarr, Overseerr), alongside Plex, Pi-hole, UniFi, Twingate Connector, TeamSpeak and a Homepage dashboard.
@@ -219,101 +209,7 @@ cd /opt/arr
 
 ### 5.2. Docker Compose – `/opt/arr/docker-compose.yml`
 
-```yaml
-version: "3.8"
-
-services:
-  qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest
-    container_name: qbittorrent
-    restart: unless-stopped
-    environment:
-      - PUID=1000         # user inside LXC
-      - PGID=1000
-      - TZ=Australia/Melbourne
-      - WEBUI_PORT=8080
-    volumes:
-      - /opt/arr/qbittorrent:/config
-      - /mnt/media/downloads:/downloads
-    ports:
-      - "8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
-
-  radarr:
-    image: lscr.io/linuxserver/radarr:latest
-    container_name: radarr
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Australia/Melbourne
-    volumes:
-      - /opt/arr/radarr:/config
-      - /mnt/media/movies:/movies
-      - /mnt/media/downloads:/downloads
-    ports:
-      - "7878:7878"
-
-  sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
-    container_name: sonarr
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Australia/Melbourne
-    volumes:
-      - /opt/arr/sonarr:/config
-      - /mnt/media/tv:/tv
-      - /mnt/media/downloads:/downloads
-    ports:
-      - "8989:8989"
-
-  prowlarr:
-    image: lscr.io/linuxserver/prowlarr:latest
-    container_name: prowlarr
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Australia/Melbourne
-    volumes:
-      - /opt/arr/prowlarr:/config
-    ports:
-      - "9696:9696"
-
-  bazarr:
-    image: lscr.io/linuxserver/bazarr:latest
-    container_name: bazarr
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Australia/Melbourne
-    volumes:
-      - /opt/arr/bazarr:/config
-      - /mnt/media/movies:/movies
-      - /mnt/media/tv:/tv
-    ports:
-      - "6767:6767"
-
-  overseerr:
-    image: sctx/overseerr:latest
-    container_name: overseerr
-    restart: unless-stopped
-    environment:
-      - LOG_LEVEL=info
-      - TZ=Australia/Melbourne
-    volumes:
-      - /opt/arr/overseerr:/app/config
-    ports:
-      - "5055:5055"
-
-networks:
-  default:
-    name: arr_net
-```
+See [docker-compose.yml](docker-compose.yml) for the full configuration.
 
 Bring everything up:
 
@@ -570,93 +466,7 @@ To keep everything up to date, the Proxmox host runs a patch script that:
 
 ### 12.1. `/usr/local/bin/patch_all_containers.sh`
 
-```bash
-#!/usr/bin/env bash
-#
-# Patch all LXC containers + DNS health check + summary for Homepage widget
-
-set -uo pipefail
-
-LOG_FILE="/var/log/lxc_patch.log"
-SUMMARY_FILE="/var/log/lxc_patch_summary.log"
-TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S %Z')"
-
-mkdir -p /var/log
-
-CHECK_DOMAIN="deb.debian.org"
-
-echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
-echo "LXC patch run started: ${TIMESTAMP}" | tee -a "$LOG_FILE"
-echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
-echo | tee -a "$LOG_FILE"
-
-echo "🔎 DNS + Repo Health Check..." | tee -a "$LOG_FILE"
-
-if dig +short "$CHECK_DOMAIN" @127.0.0.1 >/dev/null 2>&1; then
-  echo "DNS OK → Pi-hole responding" | tee -a "$LOG_FILE"
-else
-  echo "❌ DNS failed via Pi-hole (127.0.0.1) — falling back to 1.1.1.1" | tee -a "$LOG_FILE"
-  if ! dig +short "$CHECK_DOMAIN" @1.1.1.1 >/dev/null 2>&1; then
-    echo "❌ DNS lookup FAILED even with fallback resolver" | tee -a "$LOG_FILE"
-    echo "Last LXC patch: FAILED (DNS error) at ${TIMESTAMP}" > "$SUMMARY_FILE"
-    exit 1
-  fi
-  echo "DNS fallback OK but Pi-hole DNS is failing" | tee -a "$LOG_FILE"
-fi
-
-echo | tee -a "$LOG_FILE"
-echo "🧮 Listing containers..." | tee -a "$LOG_FILE"
-
-CT_LIST=$(pct list | awk 'NR>1 {print $1}')
-if [[ -z "$CT_LIST" ]]; then
-  echo "❌ No LXC containers found." | tee -a "$LOG_FILE"
-  echo "Last LXC patch: FAILED (no containers) at ${TIMESTAMP}" > "$SUMMARY_FILE"
-  exit 1
-fi
-
-echo "$CT_LIST" | tee -a "$LOG_FILE"
-echo | tee -a "$LOG_FILE"
-
-OK_LIST=()
-FAIL_LIST=()
-
-for CTID in $CT_LIST; do
-  echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
-  echo "📦 Patching container $CTID" | tee -a "$LOG_FILE"
-  echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
-
-  if pct exec "$CTID" -- bash -c '
-      apt-get update &&
-      apt-get upgrade -y &&
-      apt-get autoremove -y &&
-      apt-get autoclean -y
-    '; then
-    echo "✔ Done: $CTID" | tee -a "$LOG_FILE"
-    OK_LIST+=("$CTID")
-  else
-    echo "❌ Patching failed in container $CTID (exit code $?)" | tee -a "$LOG_FILE"
-    FAIL_LIST+=("$CTID")
-  fi
-
-  echo | tee -a "$LOG_FILE"
-done
-
-echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
-if ((${#FAIL_LIST[@]} == 0)); then
-  echo "🎉 All containers patched successfully." | tee -a "$LOG_FILE"
-  echo "Last LXC patch: SUCCESS at ${TIMESTAMP}" > "$SUMMARY_FILE"
-else
-  echo "⚠️ Some containers failed to patch." | tee -a "$LOG_FILE"
-  echo "OK:    ${OK_LIST[*]}" | tee -a "$LOG_FILE"
-  echo "FAILED:${FAIL_LIST[*]}" | tee -a "$LOG_FILE"
-  echo "Last LXC patch: PARTIAL SUCCESS at ${TIMESTAMP}" > "$SUMMARY_FILE"
-  {
-    echo "Successful: ${OK_LIST[*]}"
-    echo "Failed:     ${FAIL_LIST[*]}"
-  } >> "$SUMMARY_FILE"
-fi
-echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
-```
+See [scripts/patch_all_containers.sh](scripts/patch_all_containers.sh).
 
 Make it executable:
 
@@ -728,7 +538,7 @@ Happy tinkering 🧪
 This README reflects the current working state of the lab: Proxmox host, Plex + Arr on shared `/mnt/media`, Pi-hole/Unbound DNS, UniFi, Twingate, TeamSpeak and a Homepage dashboard tying it all together.
 
 ```
-```
+
 
 
 
