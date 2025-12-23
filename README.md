@@ -72,6 +72,8 @@ flowchart LR
 
 ## 2. Proxmox Host Setup
 
+> 📋 **Hardware Specs**: See [docs/hardware.md](docs/hardware.md) for detailed hardware specifications and resource monitoring guidance.
+
 ### 2.1. Base requirements
 
 * Proxmox VE 9.x
