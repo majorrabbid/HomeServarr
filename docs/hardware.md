@@ -8,8 +8,8 @@ This document details the hardware configuration of the Proxmox VE host running 
 
 | Component | Details |
 |-----------|---------|
-| **Manufacturer** | Beelink |
-| **Model** | SER5 MAX |
+| **Manufacturer** | BOSGAME |
+| **Model** | Ecolite Series |
 | **Serial Number** | *(Redacted for privacy)* |
 
 ---
@@ -18,13 +18,13 @@ This document details the hardware configuration of the Proxmox VE host running 
 
 | Specification | Value |
 |---------------|-------|
-| **Model** | AMD Ryzen 7 5800H with Radeon Graphics |
+| **Model** | AMD Ryzen 5 3550H with Radeon Vega Mobile Gfx |
 | **Architecture** | x86_64 |
-| **Cores** | 8 physical cores |
-| **Threads** | 16 threads (SMT enabled) |
-| **Base Clock** | 3.2 GHz |
-| **Max Boost** | 4.4 GHz |
-| **Cache** | L1: 512 KiB, L2: 4 MiB, L3: 16 MiB |
+| **Cores** | 4 physical cores |
+| **Threads** | 8 threads (SMT enabled) |
+| **Base Clock** | 1.4 GHz |
+| **Max Boost** | 2.1 GHz |
+| **Cache** | L1: 384 KiB, L2: 2 MiB, L3: 4 MiB |
 
 **Current Usage**: Check via Proxmox UI or `htop` on the host.
 
@@ -34,8 +34,8 @@ This document details the hardware configuration of the Proxmox VE host running 
 
 | Specification | Value |
 |---------------|-------|
-| **Total** | 64 GB DDR4 |
-| **Speed** | 3200 MHz |
+| **Total** | 12 GB DDR4 |
+| **Speed** | 2400-2667 MHz |
 | **Type** | SO-DIMM |
 
 **Current Usage**:
@@ -54,7 +54,9 @@ This document details the hardware configuration of the Proxmox VE host running 
 ### Media Storage
 | Disk | Size | Type | Mount | Usage |
 |------|------|------|-------|-------|
-| **sdb1** | 4 TB | SATA SSD | `/mnt/media` | Shared media library (Plex, Arr stack) |
+| **sda2** | 931 GB (879 GB usable) | USB 3.0 External Drive | `/mnt/media` | Shared media library (Plex, Arr stack) |
+
+**Note**: The media drive is connected via USB-C/USB 3.0 to the host.
 
 **Current Disk Usage**:
 ```bash
@@ -96,9 +98,9 @@ pvesm status
 ## Notes
 
 - This is a **mini PC** form factor, ideal for home lab use.
-- Low power consumption (~25-40W typical) makes it cost-effective for 24/7 operation.
-- The Ryzen 7 5800H provides excellent performance for virtualization workloads.
-- 64GB RAM allows running 10+ LXCs comfortably with headroom for expansion.
+- Low power consumption (~15-25W typical) makes it cost-effective for 24/7 operation.
+- The Ryzen 5 3550H provides solid performance for light virtualization workloads.
+- 12GB RAM allows running 10+ lightweight LXCs comfortably.
 
 ---
 
