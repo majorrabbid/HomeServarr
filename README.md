@@ -12,14 +12,14 @@ _Last verified: Nov 2025 (Proxmox VE 9, Debian 12 host, Ubuntu 24.04 LXCs)._
 
 ```mermaid
 flowchart LR
-    subgraph PVE[Proxmox VE Host]
+    subgraph PVE["Proxmox VE Host"]
         direction TB
 
-        subgraph L101[Plex (LXC 101)]
+        subgraph L101["Plex (LXC 101)"]
             PLEX[Plex Media Server]
         end
 
-        subgraph L102[Arr Stack (LXC 102)]
+        subgraph L102["Arr Stack (LXC 102)"]
             direction TB
             DKR[(Docker Engine)]
             QB[qBittorrent]
@@ -30,28 +30,28 @@ flowchart LR
             OS[Overseerr]
         end
 
-        subgraph L103[Pi-hole (LXC 103)]
+        subgraph L103["Pi-hole (LXC 103)"]
             PH[Pi-hole]
             UB[Unbound DNS]
         end
 
-        subgraph L104[UniFi (LXC 104)]
+        subgraph L104["UniFi (LXC 104)"]
             UF[UniFi Network App]
         end
 
-        subgraph L106[Twingate (LXC 106)]
+        subgraph L106["Twingate (LXC 106)"]
             TG[Twingate Connector]
         end
 
-        subgraph L108[Homepage (LXC 108)]
+        subgraph L108["Homepage (LXC 108)"]
             HP[Homepage dashboard]
         end
 
-        subgraph L109[TeamSpeak (LXC 109)]
+        subgraph L109["TeamSpeak (LXC 109)"]
             TS[TeamSpeak Server]
         end
 
-        SSD[/mnt/media (ext4 SSD)/]
+        SSD[/"/mnt/media (ext4 SSD)"/]
     end
 
     QB --- SSD
