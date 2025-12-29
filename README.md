@@ -521,7 +521,88 @@ To prevent the disk from filling up, the `arr` LXC (102) runs a custom monitorin
 
 ---
 
-## 14. Troubleshooting Notes
+## 14. Grafana Monitoring (112)
+
+Grafana provides real-time monitoring and visualization of the Proxmox VE host metrics using Prometheus and Node Exporter.
+
+### 14.1. Architecture
+
+* **Grafana LXC (112)**: Dashboard interface at `http://192.168.6.119:3000`
+* **Prometheus (PVE Host)**: Time-series database running on port 9090
+* **Node Exporter (PVE Host)**: System metrics exporter on port 9100
+
+### 14.2. Installation on PVE Host
+
+Inside the Proxmox host (192.168.4.42):
+
+```bash
+# Install Prometheus and Node Exporter
+apt-get update
+apt-get install -y prometheus prometheus-node-exporter
+
+# Enable and start services
+systemctl enable prometheus prometheus-node-exporter
+systemctl start prometheus prometheus-node-exporter
+
+# Verify services are running
+systemctl status prometheus
+systemctl status prometheus-node-exporter
+```
+
+### 14.3. Prometheus Configuration
+
+The default Prometheus configuration at `/etc/prometheus/prometheus.yml` includes:
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
+  
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+```
+
+### 14.4. Grafana Data Source Setup
+
+1. Log into Grafana at `http://192.168.6.119:3000`
+2. Navigate to **Connections** → **Data sources** → **Add new connection**
+3. Select **Prometheus**
+4. Configure:
+   * **URL**: `http://192.168.4.42:9090`
+   * **Access**: Server (default)
+   * **Authentication**: None
+5. Click **Save & Test** to verify connection
+
+### 14.5. Import Node Exporter Dashboard
+
+1. Go to **Dashboards** → **New** → **Import**
+2. Enter dashboard ID: **1860** (Node Exporter Full)
+3. Click **Load**
+4. Select the Prometheus data source
+5. Click **Import**
+
+The dashboard will display:
+* CPU usage and load
+* Memory and SWAP usage
+* Disk space and I/O
+* Network traffic
+* System uptime
+
+### 14.6. Access URLs
+
+* Grafana: `http://192.168.6.119:3000`
+* Prometheus: `http://192.168.4.42:9090`
+* Node Exporter Metrics: `http://192.168.4.42:9100/metrics`
+
+---
+
+## 15. Troubleshooting Notes
 
 A few “war story” gotchas that are now encoded into this design:
 
@@ -558,19 +639,21 @@ A few “war story” gotchas that are now encoded into this design:
 
 ---
 
-## 14. Future Ideas
+## 15. Future Ideas
 
 Things you can easily extend from here:
 
 * Add **n8n**, **Homebridge**, **Immich**, etc. as first-class documented services.
 * Add a **Service Map** diagram and expose additional metrics to Homepage.
-* Integrate **Proxmox, Pi-hole and Docker** logs into a central observability stack (e.g. Loki + Grafana in another LXC).
+* Add **pve-exporter** to Prometheus for VM/CT-specific metrics and import Proxmox dashboard (ID 10048).
+* Configure **Grafana alerts** for high CPU/RAM usage with notification channels.
+* Integrate **Pi-hole and Docker** logs into Grafana using Loki.
 * Back up key config paths (`/etc`, `/opt/arr`, `/var/lib/pihole`, `/mnt/media`) via Proxmox backups + restic / rclone.
 
 ---
 
 Happy tinkering 🧪
-This README reflects the current working state of the lab: Proxmox host, Plex + Arr on shared `/mnt/media`, Pi-hole/Unbound DNS, UniFi, Twingate, TeamSpeak and a Homepage dashboard tying it all together.
+This README reflects the current working state of the lab: Proxmox host, Plex + Arr on shared `/mnt/media`, Pi-hole/Unbound DNS, UniFi, Twingate, TeamSpeak, Grafana monitoring and a Homepage dashboard tying it all together.
 
 ```
 
