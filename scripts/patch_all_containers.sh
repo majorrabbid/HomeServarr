@@ -53,8 +53,9 @@ for CTID in $CT_LIST; do
   echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
 
   if pct exec "$CTID" -- bash -c '
-      apt-get update &&
-      apt-get upgrade -y &&
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update --allow-releaseinfo-change &&
+      apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" &&
       apt-get autoremove -y &&
       apt-get autoclean -y
     '; then
