@@ -66,9 +66,9 @@ flowchart LR
 
 * Proxmox host mounts an **ext4 SSD at `/mnt/media`**.
 * That mount is **shared into unprivileged LXCs** (Plex + Arr) as a bind mount.
-* Only `LXC 102 (arr)` runs **Docker**; all other services run *natively* in their own LXCs.
-* Pi-hole + Unbound provide DNS for the lab.
-* Homepage pulls everything together into a simple dashboard.
+* **Network**: Consolidated on **`192.168.4.0/24`** subnet.
+* **DNS**: Pi-hole (`pihole.home`) provides local DNS resolution for `*.home` domains.
+* Homepage (`homepage.home`) pulls everything together into a simple dashboard.
 
 ---
 
@@ -113,20 +113,18 @@ chmod -R 775 /mnt/media
 
 Current key LXCs:
 
-| VMID | Name                 | Purpose                                   | Notes                                 |
-| ---- | -------------------- | ----------------------------------------- | ------------------------------------- |
-| 101  | `plex`               | Plex Media Server                         | Reads from `/mnt/media`               |
-| 102  | `arr`                | Docker host for qBittorrent + *arr stack* | Only LXC that runs Docker             |
-| 103  | `pihole`             | Pi-hole + Unbound recursive DNS           | DNS for lab + blocking                |
-| 104  | `unifi`              | UniFi Network Application                 | Manages network gear                  |
-| 105  | `n8n`                | n8n Workflow Automation                   | Low-code automation                   |
-| 106  | `twingate-connector` | Twingate zero-trust connector             | Remote access                         |
-| 107  | `patchmon`           | Patch Monitor                             | Updates & Monitoring                  |
-| 108  | `homepage`           | Homepage dashboard                        | Reads summary logs, links to services |
-| 109  | `teamspeak-server`   | TeamSpeak voice server                    | Voice/chat for the family             |
-| 110  | `homebridge`         | Homebridge                                | Apple HomeKit integration             |
-| 111  | `immich`             | Immich                                    | Self-hosted photo backup              |
-| 112  | `grafana`            | Grafana                                   | Metrics & Dashboards                  |
+| VMID | Name | Purpose | DNS Name | IP Address |
+| ---- | ---- | ------- | -------- | ---------- |
+| 100 | `haos` | Home Assistant VM | `homeassistant.home` | `192.168.4.136` |
+| 101 | `plex` | Plex Media Server | `plex.home` | `192.168.4.132` |
+| 102 | `arr` | Docker host for *arr stack* | `arr.home` | `192.168.4.124` |
+| 103 | `pihole` | Pi-hole DNS | `pihole.home` | `192.168.4.53` |
+| 104 | `unifi` | UniFi Network App | `unifi.home` | `192.168.4.131` |
+| 105 | `n8n` | n8n Workflow Automation | `n8n.home` | `192.168.4.128` |
+| 106 | `twingate` | Twingate Connector | `twingate.home` | `192.168.4.129` |
+| 108 | `homepage` | Homepage dashboard | `homepage.home` | `192.168.4.126` |
+| 110 | `homebridge` | Homebridge | `homebridge.home` | `192.168.4.123` |
+| 112 | `grafana` | Grafana | `grafana.home` | `192.168.4.125` |
 
 (Additional “lab” LXCs are now documented above.)
 
