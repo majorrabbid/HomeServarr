@@ -122,8 +122,10 @@ Current key LXCs:
 | 104 | `unifi` | UniFi Network App | `unifi.home` | `192.168.4.131` |
 | 105 | `n8n` | n8n Workflow Automation | `n8n.home` | `192.168.4.128` |
 | 106 | `twingate` | Twingate Connector | `twingate.home` | `192.168.4.129` |
+| 107 | `patchmon` | PatchMon | `patchmon.home` | `192.168.4.130` |
 | 108 | `homepage` | Homepage dashboard | `homepage.home` | `192.168.4.126` |
-| 110 | `homebridge` | Homebridge | `homebridge.home` | `192.168.4.123` |
+| 109 | `teamspeak`| TeamSpeak Server | `teamspeak.home` | `192.168.4.147` |
+| 111 | `homebridge` | Homebridge | `homebridge.home` | `192.168.4.166` |
 | 112 | `grafana` | Grafana | `grafana.home` | `192.168.4.125` |
 
 (Additional “lab” LXCs are now documented above.)
@@ -525,7 +527,7 @@ Grafana provides real-time monitoring and visualization of the Proxmox VE host m
 
 ### 14.1. Architecture
 
-* **Grafana LXC (112)**: Dashboard interface at `http://192.168.6.119:3000`
+* **Grafana LXC (112)**: Dashboard interface at `http://192.168.4.125:3000`
 * **Prometheus (PVE Host)**: Time-series database running on port 9090
 * **Node Exporter (PVE Host)**: System metrics exporter on port 9100
 
@@ -568,7 +570,7 @@ scrape_configs:
 
 ### 14.4. Grafana Data Source Setup
 
-1. Log into Grafana at `http://192.168.6.119:3000`
+1. Log into Grafana at `http://192.168.4.125:3000`
 2. Navigate to **Connections** → **Data sources** → **Add new connection**
 3. Select **Prometheus**
 4. Configure:
@@ -594,7 +596,7 @@ The dashboard will display:
 
 ### 14.6. Access URLs
 
-* Grafana: `http://192.168.6.119:3000`
+* Grafana: `http://192.168.4.125:3000`
 * Prometheus: `http://192.168.4.42:9090`
 * Node Exporter Metrics: `http://192.168.4.42:9100/metrics`
 

@@ -15,7 +15,9 @@ cat > /etc/pihole/hosts/custom.list <<EOM
 192.168.4.129 twingate.home
 192.168.4.126 homepage.home
 192.168.4.126 lab.home
-192.168.4.123 homebridge.home
+192.168.4.166 homebridge.home
 192.168.4.125 grafana.home
+192.168.4.130 patchmon.home
+192.168.4.147 teamspeak.home
 EOM
 /usr/local/bin/pihole restartdns

@@ -12,7 +12,7 @@ CRIT_PCT=90
 # -------------------------
 # Sonarr
 # -------------------------
-SONARR_URL="http://192.168.5.81:8989"
+SONARR_URL="http://192.168.4.124:8989"
 SONARR_API_KEY="REPLACE_ME"
 
 # Keep seasons NEWER than this many days (eligible for prune when CRIT is hit)
@@ -24,7 +24,7 @@ PRUNE_SONARR_ENDED_ONLY=1
 # -------------------------
 # Radarr
 # -------------------------
-RADARR_URL="http://192.168.5.81:7878"
+RADARR_URL="http://192.168.4.124:7878"
 RADARR_API_KEY="REPLACE_ME"
 
 PRUNE_RADARR_ENABLE=1
