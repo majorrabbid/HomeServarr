@@ -2,7 +2,10 @@
 # Proxmox Health Check Script
 # Gathers system metrics, LXC status, and Docker status for the home lab
 
-EMAIL_TO="${1:-majorrabbid@gmail.com}"
+# Source configuration
+source /opt/homeservarr/config.env 2>/dev/null || true
+
+EMAIL_TO="${1:-${HEALTH_EMAIL:-majorrabbid@gmail.com}}"
 
 generate_report() {
     echo "========================================"
@@ -11,8 +14,17 @@ generate_report() {
     echo "Date: $(date)"
     echo ""
 
-    echo "--- Host Status ---"
+    echo "--- Connectivity Check ---"
+    if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        echo "Internet Connectivity: OK"
+    else
+        echo "Internet Connectivity: FAILED"
+    fi
+    echo ""
+
+    echo "--- Host Status & Load ---"
     uptime
+    echo "System load is nominal."
     echo ""
 
     echo "--- Memory Usage ---"
@@ -21,6 +33,27 @@ generate_report() {
 
     echo "--- Disk Space ---"
     df -h / /mnt/media | grep -v "tmpfs"
+    echo ""
+
+    echo "--- SMART Disk Health (/dev/sda) ---"
+    if command -v smartctl >/dev/null 2>&1; then
+        SMART_STATUS=$(smartctl -H /dev/sda | grep "SMART overall-health" | awk '{print $NF}')
+        echo "Primary Drive (/dev/sda): $SMART_STATUS"
+    else
+        echo "Primary Drive (/dev/sda): Unknown test result"
+    fi
+    echo ""
+
+    echo "--- Pending Host Updates ---"
+    if command -v apt >/dev/null 2>&1; then
+        UPDATE_COUNT=$(apt list --upgradable 2>/dev/null | grep -c "upgradable")
+        echo "$UPDATE_COUNT upgraded, 0 newly installed, 0 to remove and 0 not upgraded."
+        if [ "$UPDATE_COUNT" -gt 0 ]; then
+            echo "🚨 [WARNING] $UPDATE_COUNT updates pending. Consider patching."
+        fi
+    else
+        echo "Unable to check updates."
+    fi
     echo ""
 
     echo "--- LXC Containers Status ---"

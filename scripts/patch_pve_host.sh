@@ -7,11 +7,18 @@
 
 set -euo pipefail
 
+# Source configuration
+source /opt/homeservarr/config.env 2>/dev/null || true
+
 LOG_FILE="/var/log/pve_host_patch.log"
 SUMMARY_FILE="/var/log/pve_host_patch_summary.log"
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 
 mkdir -p /var/log
+
+if [[ "${HOST_PATCH_DRY_RUN:-0}" == "1" ]]; then
+  echo "DRY RUN MODE: Simulating host patching, no actual changes will be made."
+fi
 
 {
   echo "------------------------------------------------------------"
@@ -36,7 +43,15 @@ mkdir -p /var/log
 
   echo "ðŸš€ Applying upgrades..."
   # Prefer dist-upgrade; fall back to upgrade if needed
-  if apt-get dist-upgrade -y; then
+  if [[ "${HOST_PATCH_DRY_RUN:-0}" == "1" ]]; then
+    echo "DRY RUN: Simulating apt-get dist-upgrade -y"
+    echo
+    echo "âœ… Host patching simulation complete."
+    echo "------------------------------------------------------------"
+    echo "PVE host patch run finished (simulated) at: ${TIMESTAMP}"
+    echo "------------------------------------------------------------"
+    echo "Last host patch: SUCCESS (simulated) at ${TIMESTAMP}" > "${SUMMARY_FILE}"
+  elif apt-get dist-upgrade -y; then
     echo
     echo "âœ… Host patching complete."
     echo "------------------------------------------------------------"

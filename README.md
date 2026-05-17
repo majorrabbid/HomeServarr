@@ -72,7 +72,49 @@ flowchart LR
 
 ---
 
-## 2. Proxmox Host Setup
+## 2. Jarvis AI Assistant
+
+> 🤖 **Custom Agent**: This repository includes a specialized VS Code agent called "Jarvis" for managing your Proxmox home lab operations.
+
+The Jarvis agent provides intelligent assistance for:
+
+- **Media Disk Management**: Monitor `/mnt/media` usage and intelligently prune old content from Sonarr/Radarr
+- **Container Patching**: Bulk security updates for all LXC containers with DNS validation
+- **Host Maintenance**: Proxmox host patching with kernel management options
+- **Health Monitoring**: Comprehensive system health reports and status checks
+- **DNS Management**: Pi-hole custom DNS record updates and validation
+- **Service Discovery**: LXC container inventory and network mapping
+
+### Getting Started with Jarvis
+
+1. **Agent Definition**: The agent is configured in `.agent.md`
+2. **Skills**: Specialized capabilities are defined in `skills/` directory
+3. **Configuration**: Common settings in `config/config.env` (copy to `/opt/homeservarr/config.env` on host)
+4. **Scripts**: Automation scripts in `scripts/` provide the backend functionality
+
+### Example Usage
+
+- "Generate a health report for my home lab"
+- "Check media disk usage and prune if over 90%"
+- "Patch all LXC containers with latest updates"
+- "Update Pi-hole DNS records for new services"
+
+### Chat with Jarvis
+
+Jarvis can also be used as a conversational assistant for your home lab. Ask natural-language questions, and Jarvis will recommend the right skill or script and help you take safe action.
+
+Example chat prompts:
+- "Jarvis, what is the current status of my Pi-hole container?"
+- "How do I patch all LXCs safely?"
+- "Show me the disk usage for /mnt/media."
+- "What should I check if Pi-hole is not resolving DNS?"
+- "List all running containers and their IP addresses."
+
+For full chat guidance, see `skills/chat/SKILL.md` and use `scripts/jarvis_chat.sh` for quick prompt examples.
+
+---
+
+## 3. Proxmox Host Setup
 
 > 📋 **Hardware Specs**: See [docs/hardware.md](docs/hardware.md) for detailed hardware specifications and resource monitoring guidance.
 

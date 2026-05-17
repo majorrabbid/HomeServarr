@@ -4,11 +4,20 @@
 
 set -uo pipefail
 
+# Source configuration (only if not overridden by env)
+if [[ -z "${PATCH_DRY_RUN:-}" ]]; then
+  source /opt/homeservarr/config.env 2>/dev/null || true
+fi
+
 LOG_FILE="/var/log/lxc_patch.log"
 SUMMARY_FILE="/var/log/lxc_patch_summary.log"
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 
 mkdir -p /var/log
+
+if [[ "${PATCH_DRY_RUN:-0}" == "1" ]]; then
+  echo "DRY RUN MODE: Simulating patching, no actual changes will be made." | tee -a "$LOG_FILE"
+fi
 
 CHECK_DOMAIN="deb.debian.org"
 
@@ -52,7 +61,11 @@ for CTID in $CT_LIST; do
   echo "📦 Patching container $CTID" | tee -a "$LOG_FILE"
   echo "------------------------------------------------------------" | tee -a "$LOG_FILE"
 
-  if pct exec "$CTID" -- bash -c '
+  if [[ "${PATCH_DRY_RUN:-0}" == "1" ]]; then
+    echo "DRY RUN: Would patch container $CTID with apt-get update && upgrade && autoremove && autoclean" | tee -a "$LOG_FILE"
+    echo "✔ Simulated: $CTID" | tee -a "$LOG_FILE"
+    OK_LIST+=("$CTID")
+  elif pct exec "$CTID" -- bash -c '
       export DEBIAN_FRONTEND=noninteractive
       apt-get update --allow-releaseinfo-change &&
       apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" &&

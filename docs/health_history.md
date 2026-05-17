@@ -1,0 +1,59 @@
+=== Health Report: Sun May 10 11:58:25 AM AEST 2026 ===
+========================================
+    PROXMOX HOME LAB HEALTH CHECK       
+========================================
+Date: Sun May 10 11:58:25 AM AEST 2026
+
+--- Connectivity Check ---
+Internet Connectivity: OK
+
+--- Host Status & Load ---
+ 11:58:25 up 102 days, 15:39,  5 users,  load average: 1.75, 1.56, 2.15
+System load is nominal.
+
+--- Memory Usage ---
+               total        used        free      shared  buff/cache   available
+Mem:            12Gi       7.1Gi       412Mi       160Mi       5.6Gi       5.5Gi
+Swap:          8.0Gi       2.9Gi       5.1Gi
+
+--- Disk Space ---
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/pve-root   94G   22G   68G  25% /
+/dev/sda2             879G  560G  276G  68% /mnt/media
+
+
+--- SMART Disk Health (/dev/sda) ---
+Primary Drive (/dev/sda): Unknown test result
+
+--- Pending Host Updates ---
+1 upgraded, 0 newly installed, 0 to remove and 3 not upgraded.
+🚨 [WARNING] 1 updates pending. Consider patching.
+
+--- LXC Containers Status ---
+VMID       Status     Lock         Name                
+101        running                 plex                
+102        running                 arr                 
+103        running                 pihole              
+104        running                 unifi               
+105        running                 n8n                 
+106        running                 twingate-connector  
+107        running                 patchmon            
+108        running                 homepage            
+109        running                 teamspeak-server    
+110        stopped                 homebridge          
+111        running                 homebridge          
+112        running                 grafana             
+
+--- Arr Stack (LXC 102) Docker Status ---
+NAMES         STATUS
+qbittorrent   Up 19 minutes
+sonarr        Up 19 minutes
+bazarr        Up 19 minutes
+prowlarr        Up 19 minutes
+overseerr     Up 19 minutes
+radarr        Up 19 minutes
+
+========================================
+         HEALTH CHECK COMPLETE          
+========================================
+[INFO] Report emailed to majorrabbid@gmail.com

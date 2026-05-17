@@ -1,49 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Source configuration
+source /opt/homeservarr/config.env
+
 # =========================
-# CONFIG
+# CONFIG (now sourced from /opt/homeservarr/config.env)
 # =========================
 MOUNT="/mnt/media"
-
-WARN_PCT=85
-CRIT_PCT=90
-
-# -------------------------
-# Sonarr
-# -------------------------
-SONARR_URL="http://192.168.4.124:8989"
-SONARR_API_KEY="REPLACE_ME"
-
-# Keep seasons NEWER than this many days (eligible for prune when CRIT is hit)
-PRUNE_SONARR_OLDER_THAN_DAYS=60
-
-# Safety: only prune ended series
-PRUNE_SONARR_ENDED_ONLY=1
-
-# -------------------------
-# Radarr
-# -------------------------
-RADARR_URL="http://192.168.4.124:7878"
-RADARR_API_KEY="REPLACE_ME"
-
-PRUNE_RADARR_ENABLE=1
-PRUNE_RADARR_OLDER_THAN_DAYS=120          # based on Radarr "added" date
-PRUNE_RADARR_UNMONITORED_ONLY=1           # SAFETY: only delete unmonitored movies
-PRUNE_RADARR_ADD_EXCLUSION=1              # prevent re-download
-PRUNE_RADARR_DELETE_FILES=1               # delete movie files from disk
-
-# -------------------------
-# Global safety switch
-# -------------------------
-DRY_RUN=0   # 1 = log only, 0 = actually delete
-
-# -------------------------
-# Alerts (ntfy)
-# -------------------------
-NTFY_ENABLE=0
-NTFY_URL="https://ntfy.sh"
-NTFY_TOPIC="arr-disk-alerts"   # use a random/private topic
 
 # Log file
 LOG="/var/log/media_prune.log"
