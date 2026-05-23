@@ -112,6 +112,59 @@ Example chat prompts:
 
 For full chat guidance, see `skills/chat/SKILL.md` and use `scripts/jarvis_chat.sh` for quick prompt examples.
 
+### Containerizing Jarvis with Flux CD
+
+This repository now includes a lightweight container build for the Jarvis agent and a Flux CD GitOps deployment manifest.
+
+- `docker/agent/Dockerfile` builds a minimal Jarvis agent container image.
+- `docker/agent/homeservarr-agent` provides a simple entrypoint that runs `scripts/jarvis_chat.sh` by default.
+- `deploy/flux/flux-agent` contains a Flux `Kustomization` for a namespaced deployment.
+- `deploy/flux/flux-system` contains Flux `GitRepository` and `Kustomization` resources to sync the repo.
+
+Build and push the agent image:
+
+```bash
+cd /Users/sunny/repos/HomeServarr/docker/agent
+docker build -t ghcr.io/<your-org>/homeservarr-jarvis-agent:latest .
+docker push ghcr.io/<your-org>/homeservarr-jarvis-agent:latest
+```
+
+Then apply the Flux manifests from the cluster bootstrap namespace:
+
+```bash
+kubectl apply -f deploy/flux/flux-system/gitrepository.yaml
+kubectl apply -f deploy/flux/flux-system/kustomization.yaml
+```
+
+> 💡 Flux is a CNCF graduated GitOps operator, and this example uses the graduated `GitRepository` and `Kustomization` APIs for a simple application deployment.
+
+### Run Jarvis locally with Docker
+
+This repository also supports running the Jarvis agent locally on your Mac, independent of the Proxmox host.
+
+1. Build and start the local container:
+
+```bash
+cd docker/agent
+docker compose up --build -d
+```
+
+2. Run Jarvis interactively inside the container:
+
+```bash
+docker exec -it homeservarr-jarvis-agent /usr/local/bin/homeservarr-agent
+```
+
+3. Stop the local container:
+
+```bash
+docker compose down
+```
+
+A helper script is available at `docker/agent/run-local.sh` if you want a single command to start the local Jarvis container.
+
+> ⚠️ This local Docker setup mounts only the repository source under `/opt/homeservarr` and does not require any Proxmox host mounts.
+
 ---
 
 ## 3. Proxmox Host Setup

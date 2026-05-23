@@ -1,0 +1,9 @@
+#!/bin/sh
+
+cd /opt/homeservarr || exit 1
+
+if [ "$#" -eq 0 ]; then
+  exec ./scripts/jarvis_chat.sh
+else
+  exec "$@"
+fi
