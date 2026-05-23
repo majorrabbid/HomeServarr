@@ -13,15 +13,15 @@ spec:
       labels:
         app: homeservarr-jarvis-agent
     spec:
+      imagePullSecrets:
+      - name: regcred
       containers:
         - name: jarvis-agent
-          image: ghcr.io/<your-org>/homeservarr-jarvis-agent:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/majorrabbid/homeservarr-jarvis-agent:latest
+          imagePullPolicy: Always
           command:
             - /usr/local/bin/homeservarr-agent
-          securityContext:
-            runAsNonRoot: true
-            allowPrivilegeEscalation: false
+
           resources:
             limits:
               cpu: 250m
