@@ -1,0 +1,77 @@
+name: Build and Push Jarvis Image
+
+# ── WHEN THIS RUNS ────────────────────────────────────────────────────────────
+# Triggers on any push to main that touches the agent code.
+# This is the first half of the GitOps loop:
+#   Code change → push → GitHub Actions → GHCR image
+#   (Flux picks up the new image in the second half)
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docker/agent/**"
+      - ".github/workflows/docker-build.yml"
+  workflow_dispatch:  # allow manual triggering from GitHub UI
+
+# ── PERMISSIONS ───────────────────────────────────────────────────────────────
+# GHCR requires write permission on packages.
+# We use the built-in GITHUB_TOKEN — no extra secrets needed.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repo so we have the Dockerfile
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Set up QEMU for cross-platform builds (amd64 + arm64)
+      #    Your Proxmox host is likely amd64. Your Mac is arm64.
+      #    Building both means the same image works everywhere.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # 3. Enable Docker Buildx — required for multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 4. Log in to GHCR using the built-in token
+      #    Images will be at: ghcr.io/majorrabbid/homeservarr-jarvis-agent
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 5. Extract metadata for image tags and labels
+      #    This creates two tags automatically:
+      #      - ghcr.io/majorrabbid/homeservarr-jarvis-agent:latest
+      #      - ghcr.io/majorrabbid/homeservarr-jarvis-agent:<git-sha>  (e.g. :abc1234)
+      #    The SHA tag is what Flux image automation updates in deployment.yaml
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/majorrabbid/homeservarr-jarvis-agent
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=,format=short
+
+      # 6. Build and push the image
+      #    --cache-from / --cache-to speeds up repeated builds by caching layers
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/agent
+          file: docker/agent/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

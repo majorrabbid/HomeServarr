@@ -1,0 +1,8 @@
+# Root kustomize config for the apps/ directory.
+# Flux's Kustomization CRD points here. This file lists which subdirectories to include.
+# Adding a new app = create apps/myapp/ + add "- myapp" here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - signal
+  - jarvis

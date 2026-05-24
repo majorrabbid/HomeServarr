@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homeservarr-jarvis-agent
+  namespace: homeservarr
+  # These annotations tell Flux image automation which field to update.
+  # When a new image is pushed to GHCR, Flux will:
+  #   1. Detect the new SHA tag via the ImageRepository
+  #   2. Update the image field below to the new tag
+  #   3. Commit the change to this file in GitHub
+  #   4. On the next reconcile, Kubernetes rolls out the new pod
+  # This is the "write back to Git" part of GitOps.
+  annotations:
+    fluxcd.io/automated: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homeservarr-jarvis-agent
+  template:
+    metadata:
+      labels:
+        app: homeservarr-jarvis-agent
+    spec:
+      # imagePullSecrets tells Kubernetes where to find GHCR credentials.
+      # The "regcred" secret is created by scripts/create-k8s-secrets.sh
+      imagePullSecrets:
+        - name: regcred
+
+      containers:
+        - name: jarvis-agent
+          # {"$imagepolicy": "flux-system:jarvis-agent"}
+          # ↑ This comment is a Flux image automation marker.
+          #   Flux's ImageUpdateAutomation rewrites this line when a new image is pushed.
+          image: ghcr.io/majorrabbid/homeservarr-jarvis-agent:latest
+
+          # IfNotPresent: use the image already on the node if tag matches.
+          # This works correctly with SHA tags (immutable) and kind local images.
+          # In GitOps, Flux image automation changes the SHA tag → k8s pulls the new one.
+          # Never use "Always" with :latest in production — you lose reproducibility.
+          imagePullPolicy: IfNotPresent
+
+          # No "command" override — let the Dockerfile ENTRYPOINT handle it.
+          # Our Dockerfile: ENTRYPOINT ["python", "jarvis.py"]
+
+          # Env from ConfigMap (non-sensitive)
+          envFrom:
+            - configMapRef:
+                name: jarvis-config
+            # Env from Secret (sensitive: API keys, Signal number, allowed senders)
+            # Secret must exist before this pod can start.
+            - secretRef:
+                name: jarvis-secrets
+
+          # SSH key for Proxmox access — mounted from a Secret.
+          # The key file is chmod 600 (read-only by owner) which SSH requires.
+          volumeMounts:
+            - name: ssh-key
+              mountPath: /home/jarvis/.ssh
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+      volumes:
+        - name: ssh-key
+          secret:
+            secretName: jarvis-ssh-key
+            # SSH requires the private key file to be mode 0600
+            defaultMode: 0600

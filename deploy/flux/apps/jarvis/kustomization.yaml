@@ -1,0 +1,10 @@
+# This is the KUSTOMIZE kustomization (kustomize.config.k8s.io/v1beta1).
+# It tells `kubectl kustomize` (and therefore Flux) which files to include.
+# Think of it as a manifest list — the order here is the apply order.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - image-automation.yaml

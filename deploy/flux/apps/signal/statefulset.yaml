@@ -1,0 +1,56 @@
+# StatefulSet — used instead of Deployment because Signal CLI persists account data on disk.
+# If we used a Deployment with a plain volume, the data would be lost on reschedule.
+# With a StatefulSet, the PVC (Persistent Volume Claim) follows the pod.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jarvis-signal
+  namespace: homeservarr
+spec:
+  serviceName: jarvis-signal   # must match the Service name below
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jarvis-signal
+  template:
+    metadata:
+      labels:
+        app: jarvis-signal
+    spec:
+      containers:
+        - name: signal-cli
+          image: bbernhard/signal-cli-rest-api:latest
+          env:
+            - name: MODE
+              value: native  # "native" uses the faster native signal-cli binary
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: signal-data
+              mountPath: /home/.local/share/signal-cli
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /v1/about
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+  # volumeClaimTemplates — this is what makes StatefulSet special.
+  # Each replica gets its own PVC automatically named: signal-data-jarvis-signal-0
+  # When the pod is deleted and recreated, it reattaches to the same PVC.
+  volumeClaimTemplates:
+    - metadata:
+        name: signal-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 512Mi

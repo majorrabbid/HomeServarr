@@ -1,12 +1,47 @@
 services:
-  jarvis-agent:
-    build: .
-    image: homeservarr-jarvis-agent:local
-    container_name: homeservarr-jarvis-agent
-    restart: unless-stopped
-    working_dir: /opt/homeservarr
-    command: tail -f /dev/null
+
+  # Signal bridge — gives Jarvis its own phone number
+  signal:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: jarvis-signal
+    environment:
+      - MODE=native
+      - AUTO_RECEIVE_SCHEDULE=*/3 * * * *  # poll fallback every 3 min
     volumes:
-      - ../..:/opt/homeservarr:rw
-    tty: true
-    stdin_open: true
+      - signal-data:/home/.local/share/signal-cli
+    ports:
+      - "127.0.0.1:8080:8080"  # only bind locally
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/v1/about"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Jarvis AI agent
+  jarvis:
+    build: .
+    image: homeservarr-jarvis:local
+    container_name: jarvis-agent
+    depends_on:
+      signal:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - SIGNAL_CLI_URL=http://signal:8080
+    volumes:
+      # SSH key for Proxmox access (read-only)
+      - type: bind
+        source: ${SSH_KEY_HOST_PATH:-~/.ssh/identity.rsa}
+        target: /home/jarvis/.ssh/identity.rsa
+        read_only: true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  signal-data:

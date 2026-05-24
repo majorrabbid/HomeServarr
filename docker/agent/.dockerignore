@@ -6,3 +6,7 @@ node_modules
 **/*.pyo
 **/*.pyd
 *.log
+.env
+.env.example
+run-local.sh
+homeservarr-agent

@@ -1,0 +1,32 @@
+# ── FLUX KUSTOMIZATION (flux.toolkit.fluxcd.io/v1) ───────────────────────────
+# This is the Flux CRD — NOT a kustomize config file.
+# It tells Flux: "watch the GitRepository 'homeservarr-repo', look at the path
+# './deploy/flux/apps', and apply whatever is there to the cluster every 5m."
+#
+# Key fields to understand:
+#
+#   path        — where in the Git repo to look for manifests
+#   interval    — how often Flux re-applies (reconciles) even if nothing changed
+#                 This is what makes Flux "self-healing": if someone manually
+#                 changes the cluster, Flux corrects it within 5 minutes
+#   prune: true — if you delete a file from Git, Flux deletes it from the cluster
+#   retryInterval — if apply fails (e.g. webhook is down), retry after 2m
+#   targetNamespace — override the namespace for all resources in this path
+#                     (useful if your manifests don't specify a namespace)
+#
+# Teaching note: Notice there's no "kubectl apply" anywhere. You never touch
+# the cluster directly. You edit Git, Flux does the applying. That's GitOps.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: homeservarr-agent
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  sourceRef:
+    kind: GitRepository
+    name: homeservarr-repo
+  path: "./deploy/flux/apps"
+  prune: true
+  retryInterval: 2m0s
+  targetNamespace: homeservarr

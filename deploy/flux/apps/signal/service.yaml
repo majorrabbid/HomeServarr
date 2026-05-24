@@ -1,0 +1,18 @@
+# ClusterIP Service — makes signal-cli reachable from within the cluster.
+# Jarvis connects to "http://jarvis-signal:8080" — Kubernetes DNS resolves this
+# to the ClusterIP automatically. No hardcoded IP addresses needed.
+apiVersion: v1
+kind: Service
+metadata:
+  name: jarvis-signal
+  namespace: homeservarr
+spec:
+  selector:
+    app: jarvis-signal    # matches the StatefulSet pod label
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  clusterIP: None         # "Headless" service — required for StatefulSets.
+                          # Kubernetes creates a DNS entry for each pod:
+                          # jarvis-signal-0.jarvis-signal.homeservarr.svc.cluster.local

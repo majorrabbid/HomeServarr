@@ -1,0 +1,21 @@
+# ConfigMap holds non-sensitive configuration.
+# Sensitive values (API keys, SSH keys) live in a Secret created outside of Git.
+#
+# Teaching note: Never put secrets in ConfigMaps or commit them to Git.
+# The Secret "jarvis-secrets" is created manually via scripts/create-k8s-secrets.sh
+# In production teams use SOPS (encrypt-in-Git) or External Secrets Operator (pull from Vault).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jarvis-config
+  namespace: homeservarr
+data:
+  SIGNAL_CLI_URL: "http://jarvis-signal:8080"
+  PROXMOX_HOST: "192.168.4.42"
+  PROXMOX_USER: "root"
+  SSH_KEY_PATH: "/home/jarvis/.ssh/identity.rsa"
+  OVERSEERR_URL: "http://192.168.4.124:5055"
+  SONARR_URL: "http://192.168.4.124:8989"
+  RADARR_URL: "http://192.168.4.124:7878"
+  CLAUDE_MODEL: "claude-sonnet-4-6"
+  POLL_INTERVAL: "3"
