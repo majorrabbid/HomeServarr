@@ -6,7 +6,42 @@
 
 ## 1 — The Big Picture (30 seconds)
 
-Imagine a factory floor:
+Imagine a factory floor — here is the whole system at a glance:
+
+```mermaid
+flowchart LR
+    subgraph CodePhase["📝 Code"]
+        Dev["Developer\nVS Code"]
+        Git[("Git Repo\nSource of Truth")]
+        Dev -->|"git push"| Git
+    end
+
+    subgraph BuildPhase["🔨 Build"]
+        CI["CI/CD Pipeline\nGitHub Actions\nAzure DevOps"]
+        Reg[("Container Registry\nGHCR / ACR / ECR")]
+        CI -->|"docker push :sha"| Reg
+    end
+
+    subgraph DeployPhase["🚀 Deploy — FluxCD"]
+        Flux["GitOps Operator\nwatches Git + Registry"]
+        K8s["Kubernetes Cluster\nkind / AKS / EKS"]
+        Flux -->|"reconcile YAML"| K8s
+    end
+
+    subgraph RunPhase["💬 Run"]
+        Agent["AI Agent Pod\nJarvis"]
+        LLM["LLM API\nClaude / GPT-4o\nBedrock"]
+        User(["You\nSignal / Teams / Slack"])
+        K8s -->|"runs"| Agent
+        User <-->|"messages"| Agent
+        Agent <-->|"tool calls"| LLM
+    end
+
+    Git -->|"triggers"| CI
+    Reg -.->|"polls for\nnew image tags"| Flux
+    Git -.->|"polls for\nnew commits"| Flux
+    Flux -->|"writes tag\nback to Git"| Git
+```
 
 - The **Git repository** is the blueprint room. Every change starts here.
 - The **CI/CD pipeline** (GitHub Actions / Azure DevOps) is the assembly line. It takes your code and packages it into a container image.
@@ -122,77 +157,46 @@ In AWS Bedrock Agents:
 
 ## 4 — How It All Connects: The Full GitOps Loop
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  DEVELOPER WORKFLOW                                                  │
-│                                                                      │
-│  1. Edit code in VS Code                                             │
-│  2. git commit + push to feature branch                              │
-│  3. Open Pull Request → team reviews → merge to main                 │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │ merge triggers
-                           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  CI/CD PIPELINE  (GitHub Actions / Azure DevOps)                    │
-│                                                                      │
-│  Step 1: Run tests                                                   │
-│  Step 2: docker build → container image                              │
-│  Step 3: docker push → Container Registry                            │
-│          Tag: :latest  +  :abc1234 (commit SHA)                     │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │ image pushed
-                           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  CONTAINER REGISTRY  (GHCR / ACR / ECR)                             │
-│                                                                      │
-│  Stores: jarvis-agent:abc1234                                        │
-│           ↑ immutable, tied to exact code version                   │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │ Flux image-reflector polls every 5m
-                           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  FLUXCD — IMAGE AUTOMATION  (inside the cluster)                    │
-│                                                                      │
-│  ImageRepository: "new tag abc1234 detected"                         │
-│  ImagePolicy:     "abc1234 matches my filter — use it"              │
-│  ImageUpdateAutomation: rewrites deployment.yaml in Git             │
-│    image: jarvis-agent:abc1234  ← committed back to GitHub          │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │ new commit in GitHub
-                           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  FLUXCD — GITOPS RECONCILE  (inside the cluster)                    │
-│                                                                      │
-│  GitRepository: polls GitHub every 1m, finds new commit             │
-│  Kustomization: applies updated deployment.yaml to cluster          │
-│  Kubernetes:    rolling update — new pod starts, old pod stops      │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │ new pod running
-                           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  KUBERNETES CLUSTER  (kind / AKS / EKS)                             │
-│  Namespace: homeservarr                                              │
-│                                                                      │
-│  Pod: jarvis-agent          Pod: jarvis-signal (Signal CLI)         │
-│    ↕ reads secrets            ↕ receives/sends Signal messages      │
-│  Secrets: API keys          Service: ClusterIP DNS                  │
-│  ConfigMap: non-secret env  PVC: persistent Signal account data     │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │ user sends message
-                           ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  AI AGENT LOOP  (running inside jarvis-agent pod)                   │
-│                                                                      │
-│  1. Poll Signal (or Teams webhook) for new messages                 │
-│  2. Send to LLM API with system prompt + tool schemas               │
-│     ┌─ Claude (Anthropic) ─────────────────────────────────┐       │
-│     │  Azure OpenAI (GPT-4o)                                │       │
-│     │  AWS Bedrock (Claude / Titan / Nova)                  │       │
-│     └───────────────────────────────────────────────────────┘       │
-│  3. If LLM calls a tool → execute it (SSH, API call, etc.)          │
-│  4. Return result to LLM → LLM writes final reply                   │
-│  5. Send reply back to user on Signal / Teams                       │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    actor Dev as 👨‍💻 Developer
+    participant Git as Git Repo
+    participant CI as CI/CD Pipeline
+    participant Reg as Container Registry
+    participant Flux as FluxCD
+    participant K8s as Kubernetes
+    participant Agent as Jarvis Pod
+    participant LLM as LLM API
+    participant Infra as Proxmox / APIs
+    actor User as 📱 You (Signal)
+
+    Dev->>Git: 1. git push to main
+    Git->>CI: 2. workflow triggered automatically
+    CI->>CI: 3. docker build (from Dockerfile)
+    CI->>Reg: 4. docker push image:abc1234
+    Note over Reg: Immutable SHA tag stored
+
+    loop Every 5 minutes
+        Flux->>Reg: 5. poll — any new image tags?
+    end
+    Flux->>Git: 6. write new tag to deployment.yaml + commit
+    Note over Flux,Git: Git now has a record of exactly which image version is running
+
+    loop Every 1 minute
+        Flux->>Git: 7. poll — any new commits?
+    end
+    Flux->>K8s: 8. apply updated deployment.yaml
+    K8s->>Agent: 9. rolling update — new pod up, old pod down
+    Note over K8s,Agent: Zero-downtime deployment
+
+    User->>Agent: 10. "Jarvis, check the lab health"
+    Agent->>LLM: 11. message + system prompt + tool schemas
+    LLM->>Agent: 12. call tool: run_health_check
+    Agent->>Infra: 13. SSH → run health_check.sh on Proxmox
+    Infra->>Agent: 14. script output (all containers, disk, services)
+    Agent->>LLM: 15. tool result
+    LLM->>Agent: 16. "All systems healthy. Disk at 67%..."
+    Agent->>User: 17. reply via Signal
 ```
 
 ---
@@ -201,39 +205,42 @@ In AWS Bedrock Agents:
 
 There are two completely different things both called `Kustomization`. This trips up almost every engineer learning Flux for the first time.
 
-```
-deploy/flux/apps/jarvis/
-    kustomization.yaml     ← THIS IS A KUSTOMIZE FILE
-                             API: kustomize.config.k8s.io/v1beta1
-                             It's just a manifest list — "include these files"
-                             Tool: kubectl kustomize, kustomize CLI
+```mermaid
+flowchart TB
+    subgraph InGit["📁 In Git — files on disk"]
+        FluxK["🔴 FLUX CRD\ndeploy/flux/kustomization.yaml\napiVersion: kustomize.toolkit.fluxcd.io/v1\nkind: Kustomization\nspec:\n  path: ./deploy/flux/apps\n  interval: 5m\n  prune: true\nThis is a Kubernetes resource.\nActive watcher. Does things.\nTells Flux: watch this Git path."]
 
-deploy/flux/kustomization.yaml   ← THIS IS A FLUX CRD
-                                   API: kustomize.toolkit.fluxcd.io/v1
-                                   It's a Kubernetes resource — "watch this path in Git"
-                                   It lives IN the cluster
+        AppK["🟢 KUSTOMIZE FILE\ndeploy/flux/apps/jarvis/kustomization.yaml\napiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources:\n  - namespace.yaml\n  - deployment.yaml\n  - configmap.yaml\nThis is just a static file.\nPassive manifest list.\nTells kustomize: include these YAMLs."]
+    end
+
+    subgraph InCluster["☸️ In Kubernetes Cluster"]
+        FluxPod["kustomize-controller pod\nflux-system namespace\nReads the Flux CRD.\nFetches the Git path.\nRuns kustomize on it.\nApplies results to cluster."]
+
+        K8sResources["Applied resources\nNamespace: homeservarr\nDeployment: jarvis-agent\nConfigMap: jarvis-config\nStatefulSet: jarvis-signal"]
+    end
+
+    FluxK -->|"Flux controller reads and\nwatches the configured path"| FluxPod
+    FluxPod -->|"fetches Git path, finds\nthis kustomize file"| AppK
+    AppK -->|"kustomize renders the\nlisted YAML files"| K8sResources
 ```
 
-**Analogy:** Think of the kustomize file as a `package.json` — it lists what to include. Think of the Flux Kustomization as a GitHub Action — it's an active running process that does something.
+**The analogy:** The kustomize file is like `package.json` — a static list of what to include. The Flux Kustomization is like a running GitHub Action — an active process that does something continuously.
 
 ---
 
 ## 6 — Secrets: The Thing You Cannot Put in Git
 
-```
-WRONG ❌                          RIGHT ✓
-────────────────────────────      ────────────────────────────────────────
-apiVersion: v1                    # Secret created once, stored in the
-kind: Secret                      # cluster only, never in Git.
-data:                             # Created by: scripts/create-k8s-secrets.sh
-  API_KEY: bXlzZWNyZXQ=  ←NEVER  #
-                                  # In enterprise use one of:
-                                  # ┌──────────────────────────────────┐
-                                  # │ Azure: Key Vault + CSI driver    │
-                                  # │ AWS:   Secrets Manager + ESO     │
-                                  # │ Any:   SOPS + age (encrypt       │
-                                  # │        in Git, Flux decrypts)    │
-                                  # └──────────────────────────────────┘
+```mermaid
+flowchart LR
+    WrongFile["❌ WRONG\nsecret.yaml committed to Git\napiVersion: v1\nkind: Secret\ndata:\n  API_KEY: bXlzZWNyZXQ=\nbase64 is NOT encryption.\nAnyone with repo access\ncan decode this instantly."]
+
+    WrongFile -.->|"never do this\ninstead choose one of" | Opt1
+    WrongFile -.-> Opt2
+    WrongFile -.-> Opt3
+
+    Opt1["✅ Option A — Manual\nscripts/create-k8s-secrets.sh\nCreate once in the cluster.\nNever commit the file.\nGood for home lab and learning."]
+    Opt2["✅ Option B — SOPS + age\nEncrypt the secret YAML in Git.\nFlux decrypts on apply.\nBest for GitOps-native teams."]
+    Opt3["✅ Option C — External Secrets\nAzure Key Vault\nAWS Secrets Manager\nSecrets fetched at pod runtime.\nBest for enterprise."]
 ```
 
 **SOPS** (Secrets OPerationS) is the most popular GitOps-native option:
@@ -368,14 +375,29 @@ VS Code (your workstation)
 
 ## 12 — Australian Signal Setup Reference
 
-```
-Your personal mobile (Signal app installed)
-    ↕ text messages
-Jarvis's dedicated SIM (in a spare phone / USB modem)
-    ↕ registered with signal-cli
-signal-cli-rest-api pod (in Kubernetes cluster)
-    ↕ HTTP REST API  (http://jarvis-signal:8080)
-jarvis-agent pod (your AI agent)
+```mermaid
+flowchart LR
+    subgraph YourPhone["📱 Your Personal Mobile"]
+        PersonalNum["+61 4XX XXX XXX\nSignal app installed\nThis is your number"]
+    end
+
+    subgraph SignalNet["Signal Network (encrypted)"]
+        SNet(["End-to-end\nencrypted messages"])
+    end
+
+    subgraph JarvisHardware["📱 Jarvis Dedicated SIM"]
+        JarvisNum["+61 4XX XXX XXX\nCheap prepaid SIM\nThis is Jarvis's number"]
+    end
+
+    subgraph K8sCluster["☸️ Kubernetes Cluster (on your Mac)"]
+        SignalPod["jarvis-signal-0 pod\nsignal-cli-rest-api\nregistered to Jarvis SIM"]
+        JarvisPod["jarvis-agent pod\nPython + Claude API\nlistens every 3s"]
+        SignalPod <-->|"HTTP REST API\nhttp://jarvis-signal:8080"| JarvisPod
+    end
+
+    PersonalNum <-->|"you text Jarvis's number"| SNet
+    SNet <-->|"signal-cli receives\nand sends messages"| JarvisNum
+    JarvisNum <-->|"SIM registered\nwith signal-cli"| SignalPod
 ```
 
 **Australian number format:**
