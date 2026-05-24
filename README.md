@@ -734,7 +734,17 @@ A few “war story” gotchas that are now encoded into this design:
 
 ---
 
-## 15. Future Ideas
+## 15. Home Assistant (VMID 100)
+
+Home Assistant OS runs as a VM (`haos`, `192.168.4.136`), exposed externally via Nabu Casa.
+
+See [docs/home-assistant.md](docs/home-assistant.md) for full setup details.
+
+**Tesla Fleet integration** — Model 3 *Tessie* connected via the native `tesla_fleet` integration with 88 entities (battery, charging, climate, locks, location, etc.). A custom component (`homeassistant/custom_components/tesla_public_key/`) serves the Tesla public key at the required `/.well-known/appspecific/com.tesla.3p.public-key.pem` path via Nabu Casa.
+
+---
+
+## 16. Future Ideas
 
 Things you can easily extend from here:
 
