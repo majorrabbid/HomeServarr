@@ -1,0 +1,9 @@
+{
+  "domain": "tesla_public_key",
+  "name": "Tesla Public Key Server",
+  "version": "1.0.0",
+  "requirements": [],
+  "dependencies": ["http"],
+  "codeowners": [],
+  "iot_class": "cloud_polling"
+}
