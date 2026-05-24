@@ -1,6 +1,12 @@
-# Home Assistant (VMID 100 – `haos`)
+# Home Assistant
 
-Home Assistant OS running as a VM on Proxmox at `192.168.4.136`, accessible externally via Nabu Casa at `rn8i7mtiv83lqfhsmqb856s6wq86wgge.ui.nabu.casa`.
+Home Assistant OS runs as VM 100 (`haos`) on the Proxmox host.
+
+| | |
+|---|---|
+| **Local address** | `homeassistant.home` · `192.168.4.136` |
+| **Remote access** | Nabu Casa — `rn8i7mtiv83lqfhsmqb856s6wq86wgge.ui.nabu.casa` |
+| **Integration** | Native `tesla_fleet` (not HACS) |
 
 ---
 
@@ -8,75 +14,124 @@ Home Assistant OS running as a VM on Proxmox at `192.168.4.136`, accessible exte
 
 ### Overview
 
-Uses the **native HA `tesla_fleet` integration** (not HACS) to connect a Tesla Model 3 named *Tessie* (VIN `LRW3F7EK8NC684538`). Provides 88 entities covering battery, charging, climate, locks, doors, location, seat heaters, media player, and more.
+The native HA `tesla_fleet` integration connects a Tesla Model 3 named *Tessie* (VIN `LRW3F7EK8NC684538`). It provides 88 entities covering:
 
-### How it works
+- **Battery & charging** — level, rate, limit, current, voltage, energy added, time to full
+- **Climate** — HVAC on/off, temperature, cabin overheat protection, defrost, seat heaters
+- **Location** — GPS tracker, active route, distance and time to arrival
+- **Security** — door lock, charge cable lock, sentry mode, dashcam
+- **Covers** — frunk, trunk, windows, charge port, sunroof
+- **Controls** — wake, flash lights, honk, HomeLink, media player
+- **Diagnostics** — odometer, tyre pressure, inside/outside temperature, shift state, speed
 
-Tesla Fleet API requires:
-1. A **developer application** registered at developer.tesla.com with your Nabu Casa domain
-2. A **public key** hosted at `/.well-known/appspecific/com.tesla.3p.public-key.pem` on that domain
-3. **OAuth authentication** via the Tesla mobile app
-4. A **virtual key** paired to the car (for sending commands)
+### How the Tesla Fleet API works
 
-### Public key hosting
+Three things are required before the integration can function:
 
-HA has no native way to serve files at arbitrary HTTP paths. The solution is a tiny custom component (`tesla_public_key`) that registers an unauthenticated HTTP view directly with HA's aiohttp server. Since Nabu Casa transparently proxies all requests to HA's HTTP server, the key is reachable at the Nabu Casa URL.
+1. **Developer application** — registered at `developer.tesla.com` with your Nabu Casa domain as the allowed origin
+2. **Public key** — served at `/.well-known/appspecific/com.tesla.3p.public-key.pem` on that domain so Tesla can verify you control it
+3. **OAuth token** — granted by the Tesla mobile app, authorising HA to read vehicle data
+4. **Virtual key** — NFC-paired to the car, required before HA can *send* commands
 
-The component lives at `homeassistant/custom_components/tesla_public_key/` in this repo and is deployed to `/config/custom_components/tesla_public_key/` on the HA instance.
+Steps 1–3 are complete. Step 4 is the remaining TODO.
 
-To activate, `configuration.yaml` must include:
+---
 
+## Public Key Hosting
+
+### The problem
+
+HA has no built-in way to serve a file at an arbitrary HTTP path like `/.well-known/...`. The `www/` folder only serves content at `/local/`, and Nabu Casa proxies directly to HA's HTTP server — there is no intermediate Nginx to configure.
+
+### The solution
+
+A minimal custom component (`tesla_public_key`) registers an unauthenticated `aiohttp` view on HA's own HTTP server at exactly the path Tesla requires. Because Nabu Casa forwards every request to HA, the key is reachable publicly with no extra configuration.
+
+**Component location in this repo:** `homeassistant/custom_components/tesla_public_key/`
+
+**Deployed to HA at:** `/config/custom_components/tesla_public_key/`
+
+**Activated by** adding to `/config/configuration.yaml`:
 ```yaml
 tesla_public_key:
 ```
 
-Verify the endpoint is live:
-
+**Verify it's working:**
 ```bash
 curl https://rn8i7mtiv83lqfhsmqb856s6wq86wgge.ui.nabu.casa/.well-known/appspecific/com.tesla.3p.public-key.pem
 ```
 
-### Tesla developer app
+Expected response:
+```
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE4hEFAKOht9LwCipSmwRddTaiPKIW
+x2BQVlbomVihteaArbU8coISxzRlA2YCkzPpYYmlB6HatiKRlcZmRCnf0w==
+-----END PUBLIC KEY-----
+```
 
-- **Client ID:** `9098cd9a-96be-444b-9c81-3deb0481bb10`
-- **Domain:** `rn8i7mtiv83lqfhsmqb856s6wq86wgge.ui.nabu.casa`
-- **Public key URL:** `https://rn8i7mtiv83lqfhsmqb856s6wq86wgge.ui.nabu.casa/.well-known/appspecific/com.tesla.3p.public-key.pem`
+### Tesla developer app details
 
-### Key entities
+| Field | Value |
+|-------|-------|
+| Client ID | `9098cd9a-96be-444b-9c81-3deb0481bb10` |
+| Domain | `rn8i7mtiv83lqfhsmqb856s6wq86wgge.ui.nabu.casa` |
 
-| Entity | Description |
-|--------|-------------|
-| `sensor.tessie_battery_level` | Battery % |
-| `sensor.tessie_charging` | Charging state |
-| `number.tessie_charge_limit` | Charge limit (50–100%) |
-| `switch.tessie_charge` | Start/stop charging |
-| `climate.tessie_climate` | HVAC control |
-| `lock.tessie_lock` | Door lock |
-| `device_tracker.tessie_location` | GPS location |
-| `cover.tessie_frunk` / `trunk` | Frunk and trunk |
+---
 
-### Command sending (virtual key)
+## Virtual Key Pairing ⚠️ TODO
 
-Reading sensor data works with OAuth alone. Sending commands (climate, locks, etc.) requires a **virtual key** paired to the car via NFC:
+### What it unlocks
 
-1. In HA go to **Settings → Devices & Services → Tesla Fleet → Configure**
-2. Follow the "Add key to vehicle" flow — it generates a pairing link
-3. Open the link in the Tesla mobile app
-4. Tap your phone to the car's NFC reader (center console) to complete pairing
+Without the virtual key, HA can read all vehicle data and control charging, but **cannot send any other commands**. Commands that require the virtual key:
 
-> Charging controls (`switch.tessie_charge`, `number.tessie_charge_limit`) may work without the virtual key on some firmware versions — test first before doing the NFC pairing.
+| Command | Entity |
+|---------|--------|
+| Lock / unlock doors | `lock.tessie_lock` |
+| Climate on / off | `climate.tessie_climate` |
+| Set temperature | `climate.tessie_climate` |
+| Defrost | `switch.tessie_defrost` |
+| Seat heaters | `select.tessie_seat_heater_*` |
+| Open frunk | `cover.tessie_frunk` |
+| Open / close trunk | `cover.tessie_trunk` |
+| Vent / close windows | `cover.tessie_windows` |
+| Flash lights | `button.tessie_flash_lights` |
+| Honk horn | `button.tessie_honk_horn` |
+
+### How to pair
+
+> **Requires physical proximity to *Tessie*.**
+
+1. In HA, go to **Settings → Devices & Services → Tesla Fleet**
+2. Click **Configure** on the integration entry
+3. Select **Add key to vehicle** — HA generates a pairing link
+4. Open the link in the **Tesla mobile app** on your phone
+5. The app will prompt you to hold your phone near the car
+6. Tap your phone to the **NFC reader on the center console** (top of the armrest)
+7. The car will confirm the key has been added
+
+Once paired, all command entities will become controllable immediately — no HA restart required.
+
+### Verify pairing worked
+
+Try toggling `switch.tessie_charge` or calling `button.tessie_honk_horn` from the HA Developer Tools. If you no longer see the "key not set up" error, pairing is complete.
 
 ---
 
 ## SSH Add-on
 
-The **Terminal & SSH** add-on (core_ssh) has port 22 mapped to the host and the following authorized keys configured:
+The **Terminal & SSH** add-on (`core_ssh`) has port 22 exposed on the host with the following keys authorised:
 
-- `psl@lakhiyan.com` (main Mac key — ed25519, passphrase-protected)
-- `claude-code-proxmox` (Claude Code automation key — ed25519, no passphrase)
+| Key | Comment | Passphrase |
+|-----|---------|------------|
+| `id_ed25519.pub` | `psl@lakhiyan.com` | Yes (use ssh-agent) |
+| `id_rsa` (ed25519 type) | `claude-code-proxmox` | No |
 
 Connect from the Mac:
-
 ```bash
 ssh root@homeassistant.local
+```
+
+If connecting from a fresh shell without the agent loaded, use the unencrypted key explicitly:
+```bash
+ssh -i ~/.ssh/id_rsa root@homeassistant.local
 ```
