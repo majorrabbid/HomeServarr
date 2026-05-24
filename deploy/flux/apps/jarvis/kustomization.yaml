@@ -7,4 +7,6 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - deployment.yaml
-  - image-automation.yaml
+  # image-automation.yaml is NOT here — those resources (ImageRepository, ImagePolicy,
+  # ImageUpdateAutomation) live in flux-system namespace and are applied separately.
+  # See deploy/flux/flux-system/image-automation.yaml

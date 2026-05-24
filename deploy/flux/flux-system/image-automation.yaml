@@ -1,0 +1,79 @@
+# ── IMAGE AUTOMATION — how Flux keeps your deployment up to date ───────────────
+#
+# Three resources work together:
+#
+#  ImageRepository  →  polls GHCR for new tags every 5m
+#       ↓
+#  ImagePolicy      →  picks which tag to use ("latest SHA")
+#       ↓
+#  ImageUpdateAutomation  →  writes the tag into deployment.yaml, commits to GitHub
+#
+# The "# {\"$imagepolicy\": ...}" comment in deployment.yaml is the marker
+# that tells ImageUpdateAutomation which line to update.
+
+---
+# 1. Watch GHCR for new tags on our image.
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: jarvis-agent
+  namespace: flux-system
+spec:
+  image: ghcr.io/majorrabbid/homeservarr-jarvis-agent
+  interval: 5m0s
+  # For private GHCR images, add:
+  # secretRef:
+  #   name: regcred
+
+---
+# 2. ImagePolicy — which tag to deploy.
+#    We use the short SHA tags that GitHub Actions generates (e.g. "abc1234").
+#    "latest" is excluded because it's not a valid semver/alphabetic order comparator.
+#    alphabetical: true + order: asc picks the lexicographically latest SHA.
+#    In production teams often use semver: {range: ">=1.0.0"} with tagged releases.
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: jarvis-agent
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: jarvis-agent
+  filterTags:
+    # Match 7-character SHA hashes (GitHub short SHAs)
+    pattern: "^[a-f0-9]{7}$"
+  policy:
+    alphabetical:
+      order: asc
+
+---
+# 3. ImageUpdateAutomation — writes the new tag to Git.
+#    It scans files for "# {"$imagepolicy": "flux-system:jarvis-agent"}" markers
+#    and updates the image field, then commits and pushes to GitHub.
+#    Flux needs write access to your repo for this — configure via a GitHub PAT
+#    stored in the "flux-github-auth" secret (see scripts/create-k8s-secrets.sh).
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: jarvis-agent
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  sourceRef:
+    kind: GitRepository
+    name: homeservarr-repo
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxbot@homeservarr.local
+        name: Flux Image Updater
+      messageTemplate: |
+        chore: update jarvis image to {{range .Updated.Images}}{{.}}{{end}}
+    push:
+      branch: main
+  update:
+    path: ./deploy/flux/apps
+    strategy: Setters
