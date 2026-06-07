@@ -56,7 +56,7 @@ data:
               - type: dns-stats
                 title: Pi-hole
                 service: pihole-v6
-                url: http://pihole.home
+                url: http://192.168.4.122   # CT103 is at .122 (the .53 record is stale)
                 password: ${PIHOLE_PASSWORD}
 
               # Home Assistant entities via the REST API.
