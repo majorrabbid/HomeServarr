@@ -1,0 +1,19 @@
+# Routes http://beszel.home (port 80) to the Beszel hub (container port 8090) via Traefik.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: beszel
+  namespace: monitoring
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: beszel.home
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: beszel
+                port:
+                  number: 8090

@@ -1,12 +1,13 @@
-# Beszel hub UI + the port agents connect back to. LoadBalancer gives it a LAN IP via
-# k3s servicelb so agents on the LXCs/host (outside the cluster) can reach it.
+# Beszel hub UI. ClusterIP only — LAN access via the Traefik Ingress (beszel.home).
+# Agents don't need to reach the hub: in the SSH model the hub dials out to each
+# agent on :45876, so no inbound service is required for metrics collection.
 apiVersion: v1
 kind: Service
 metadata:
   name: beszel
   namespace: monitoring
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: beszel
   ports:
