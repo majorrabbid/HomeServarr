@@ -1,0 +1,15 @@
+# Beszel hub UI + the port agents connect back to. LoadBalancer gives it a LAN IP via
+# k3s servicelb so agents on the LXCs/host (outside the cluster) can reach it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: beszel
+  namespace: monitoring
+spec:
+  type: LoadBalancer
+  selector:
+    app: beszel
+  ports:
+    - port: 8090
+      targetPort: 8090
+      name: http

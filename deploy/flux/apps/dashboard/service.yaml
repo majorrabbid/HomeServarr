@@ -1,0 +1,16 @@
+# Exposes Glance inside the cluster. For LAN access, k3s ships with a ServiceLB:
+# switching type to LoadBalancer (or adding an Ingress) gives it a routable IP.
+# Start as ClusterIP; flip to LoadBalancer in Phase 5 once we pick the access pattern.
+apiVersion: v1
+kind: Service
+metadata:
+  name: glance
+  namespace: dashboard
+spec:
+  type: LoadBalancer        # k3s servicelb assigns a LAN IP (host network range)
+  selector:
+    app: glance
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http

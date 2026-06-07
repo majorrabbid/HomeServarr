@@ -1,0 +1,14 @@
+# GitRepository for the always-on k3s cluster (CT 113, 192.168.4.133).
+# Tracks the feat/network-dashboard branch during build/validation so `main`
+# stays pristine. At cutover (Phase 6) switch `branch` to main and delete the
+# old kind-cluster Flux config.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: homeservarr-repo
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  url: https://github.com/majorrabbid/HomeServarr
+  ref:
+    branch: feat/network-dashboard   # TODO(cutover): switch to main

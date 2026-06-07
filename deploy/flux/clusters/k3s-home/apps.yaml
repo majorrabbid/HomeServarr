@@ -1,0 +1,31 @@
+# Flux Kustomizations for the k3s-home cluster.
+# Scoped deliberately to monitoring (Beszel) + dashboard (Glance) only —
+# the signal/jarvis apps are intentionally NOT reconciled here yet, since they
+# need their own image-pull + app secrets that aren't provisioned on this cluster.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: monitoring
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  retryInterval: 1m0s
+  path: ./deploy/flux/apps/monitoring
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homeservarr-repo
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: dashboard
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  retryInterval: 1m0s
+  path: ./deploy/flux/apps/dashboard
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: homeservarr-repo

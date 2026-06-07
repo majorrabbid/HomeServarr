@@ -1,0 +1,13 @@
+# Beszel hub stores its SQLite DB + config here. k3s default StorageClass is local-path,
+# which provisions a hostPath-backed PV on the node automatically.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: beszel-data
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
