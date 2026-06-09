@@ -1,0 +1,43 @@
+# Glance — single stateless container. Config comes from the glance-config ConfigMap;
+# secret values (Pi-hole password, HA token) come from the dashboard-secrets Secret and
+# are referenced as ${ENV_VAR} inside glance.yml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glance
+  namespace: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: glance
+  template:
+    metadata:
+      labels:
+        app: glance
+      annotations:
+        # Roll the pod automatically when the config changes.
+        # (Flux + this checksum-free hint; or use kustomize configMapGenerator later.)
+        reloader.stakater.com/auto: "true"
+    spec:
+      containers:
+        - name: glance
+          image: glanceapp/glance:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: dashboard-secrets   # provides PIHOLE_PASSWORD, HA_TOKEN
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+      volumes:
+        - name: config
+          configMap:
+            name: glance-config

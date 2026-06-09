@@ -1,0 +1,19 @@
+# Routes http://glance.home (port 80) to the Glance service via Traefik.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: glance
+  namespace: dashboard
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: glance.home
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: glance
+                port:
+                  number: 80

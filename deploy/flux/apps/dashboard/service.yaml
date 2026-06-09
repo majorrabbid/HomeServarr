@@ -1,0 +1,15 @@
+# Exposes Glance inside the cluster. ClusterIP only — LAN access is via the
+# Traefik Ingress (glance.home, port 80). See ingress.yaml.
+apiVersion: v1
+kind: Service
+metadata:
+  name: glance
+  namespace: dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: glance
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http

@@ -1,0 +1,103 @@
+# Glance configuration, delivered as a ConfigMap and mounted at /app/config/glance.yml.
+# Secrets are NOT inlined here — Glance substitutes ${ENV_VAR} at startup, and those vars
+# come from the `dashboard-secrets` Secret (see scripts/create-dashboard-secrets.sh).
+#
+# Edit this file in Git → commit → Flux reconciles → Glance reloads. That's the whole loop.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glance-config
+  namespace: dashboard
+data:
+  glance.yml: |
+    server:
+      host: 0.0.0.0
+      port: 8080
+
+    theme:
+      background-color: 225 14 15
+      primary-color: 145 70 60
+      contrast-multiplier: 1.1
+
+    pages:
+      - name: Home
+        width: wide
+        desktop-navigation-width: wide
+        columns:
+          # ── Left: service links + status ──────────────────────────────
+          - size: small
+            widgets:
+              - type: monitor
+                title: Services
+                cache: 1m
+                sites:
+                  - title: Proxmox
+                    url: https://192.168.4.42:8006
+                    icon: si:proxmox
+                    allow-insecure: true
+                  - title: Home Assistant
+                    url: http://192.168.4.136:8123
+                    icon: si:homeassistant
+                  - title: Plex
+                    url: http://192.168.4.132:32400/web
+                    icon: si:plex
+                  - title: Pi-hole
+                    url: http://192.168.4.122/admin
+                    link: http://pihole.home/admin
+                    icon: si:pihole
+                  - title: Overseerr
+                    url: http://192.168.4.124:5055
+                    icon: si:overseerr
+                  - title: Beszel
+                    url: http://beszel.home
+                    icon: si:grafana
+
+          # ── Middle: Pi-hole + network ─────────────────────────────────
+          - size: full
+            widgets:
+              # Native Pi-hole widget (supports v6 API + app password).
+              - type: dns-stats
+                title: Pi-hole
+                service: pihole-v6
+                url: http://192.168.4.122   # CT103 is at .122 (the .53 record is stale)
+                password: ${PIHOLE_PASSWORD}
+
+              # Home Assistant entity: outdoor temperature.
+              - type: custom-api
+                title: Outdoor Temperature
+                cache: 30s
+                url: http://192.168.4.136:8123/api/states/sensor.tessie_outside_temperature
+                headers:
+                  Authorization: Bearer ${HA_TOKEN}
+                template: |
+                  <div class="text-center">
+                    <div class="size-h3 color-highlight">{{ .JSON.String "state" }}°</div>
+                    <div class="size-h6">Outdoor</div>
+                  </div>
+
+              # Home Assistant entity: Tesla battery.
+              - type: custom-api
+                title: Tessie Battery
+                cache: 30s
+                url: http://192.168.4.136:8123/api/states/sensor.tessie_battery_level
+                headers:
+                  Authorization: Bearer ${HA_TOKEN}
+                template: |
+                  <div class="text-center">
+                    <div class="size-h3 color-highlight">{{ .JSON.String "state" }}%</div>
+                    <div class="size-h6">Tessie</div>
+                  </div>
+
+          # ── Right: weather + clock ────────────────────────────────────
+          - size: small
+            widgets:
+              - type: weather
+                location: Melbourne, Australia
+                units: metric
+                hour-format: 24h
+              - type: clock
+                hour-format: 24h
+                timezone-label: Melbourne
+                timezones:
+                  - timezone: Australia/Melbourne
+                    label: Home

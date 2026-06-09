@@ -1,0 +1,38 @@
+# Beszel hub — the web UI + collector. Agents on each monitored host push system stats here.
+# The hub itself is tiny; the heavy lifting (reading /proc, Docker socket) happens in the agents,
+# which live OUTSIDE the cluster on each LXC/host (see scripts/install-beszel-agents.sh).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beszel
+  namespace: monitoring
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate          # single RWO volume — don't run two pods at once
+  selector:
+    matchLabels:
+      app: beszel
+  template:
+    metadata:
+      labels:
+        app: beszel
+    spec:
+      containers:
+        - name: beszel
+          image: henrygd/beszel:latest
+          ports:
+            - containerPort: 8090
+          volumeMounts:
+            - name: data
+              mountPath: /beszel_data
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 192Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: beszel-data

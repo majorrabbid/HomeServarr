@@ -6,3 +6,5 @@ kind: Kustomization
 resources:
   - signal
   - jarvis
+  - monitoring
+  - dashboard
