@@ -21,6 +21,8 @@ data:
 
     pages:
       - name: Home
+        width: wide
+        desktop-navigation-width: wide
         columns:
           # ── Left: service links + status ──────────────────────────────
           - size: small
@@ -40,13 +42,14 @@ data:
                     url: http://192.168.4.132:32400/web
                     icon: si:plex
                   - title: Pi-hole
-                    url: http://pihole.home/admin
+                    url: http://192.168.4.122/admin
+                    link: http://pihole.home/admin
                     icon: si:pihole
                   - title: Overseerr
                     url: http://192.168.4.124:5055
                     icon: si:overseerr
                   - title: Beszel
-                    url: http://beszel.dashboard.svc.cluster.local:8090
+                    url: http://beszel.home
                     icon: si:grafana
 
           # ── Middle: Pi-hole + network ─────────────────────────────────
@@ -59,24 +62,30 @@ data:
                 url: http://192.168.4.122   # CT103 is at .122 (the .53 record is stale)
                 password: ${PIHOLE_PASSWORD}
 
-              # Home Assistant entities via the REST API.
-              # Replace the entity IDs with the ones you care about; add more rows freely.
+              # Home Assistant entity: outdoor temperature.
               - type: custom-api
-                title: Home Assistant
+                title: Outdoor Temperature
                 cache: 30s
-                url: http://192.168.4.136:8123/api/states
+                url: http://192.168.4.136:8123/api/states/sensor.tessie_outside_temperature
                 headers:
                   Authorization: Bearer ${HA_TOKEN}
                 template: |
-                  <div class="flex justify-between text-center">
-                    {{ range .JSON.Array "" }}
-                      {{ if eq (.String "entity_id") "sensor.outdoor_temperature" }}
-                        <div><div class="size-h3 color-highlight">{{ .String "state" }}°</div><div class="size-h6">Outdoor</div></div>
-                      {{ end }}
-                      {{ if eq (.String "entity_id") "sensor.tesla_battery" }}
-                        <div><div class="size-h3 color-highlight">{{ .String "state" }}%</div><div class="size-h6">Tessie</div></div>
-                      {{ end }}
-                    {{ end }}
+                  <div class="text-center">
+                    <div class="size-h3 color-highlight">{{ .JSON.String "state" }}°</div>
+                    <div class="size-h6">Outdoor</div>
+                  </div>
+
+              # Home Assistant entity: Tesla battery.
+              - type: custom-api
+                title: Tessie Battery
+                cache: 30s
+                url: http://192.168.4.136:8123/api/states/sensor.tessie_battery_level
+                headers:
+                  Authorization: Bearer ${HA_TOKEN}
+                template: |
+                  <div class="text-center">
+                    <div class="size-h3 color-highlight">{{ .JSON.String "state" }}%</div>
+                    <div class="size-h6">Tessie</div>
                   </div>
 
           # ── Right: weather + clock ────────────────────────────────────
