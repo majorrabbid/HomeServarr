@@ -55,12 +55,11 @@ data:
           # ── Middle: Pi-hole + network ─────────────────────────────────
           - size: full
             widgets:
-              # Native Pi-hole widget (supports v6 API + app password).
+              # Native Pi-hole widget (supports v6 API, no password set).
               - type: dns-stats
                 title: Pi-hole
                 service: pihole-v6
                 url: http://192.168.4.122   # CT103 is at .122 (the .53 record is stale)
-                password: ${PIHOLE_PASSWORD}
 
               # Home Assistant entity: outdoor temperature.
               - type: custom-api
