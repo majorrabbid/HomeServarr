@@ -105,6 +105,35 @@ Exposes `HassTurnOn/Off`, `HassLightSet`, `GetLiveContext`, etc. Only entities e
 
 ---
 
+## HomeServarr repo sync
+
+CT114 keeps a **read-only** clone of this repo at `/home/openclaw/repos/HomeServarr`, owned by the `openclaw` user with no push credentials. All editing happens on the Mac; CT114 just pulls.
+
+Sync is driven by a systemd timer:
+
+- `/etc/systemd/system/homeservarr-pull.service` — one-shot `git pull --ff-only --quiet` in the repo, as user `openclaw`.
+- `/etc/systemd/system/homeservarr-pull.timer` — `OnBootSec=2min`, `OnUnitActiveSec=15min`, `Persistent=true`.
+
+Check state:
+
+```bash
+ssh root@192.168.4.42 pct exec 114 -- \
+  systemctl list-timers homeservarr-pull.timer --no-pager
+```
+
+Force a pull immediately:
+
+```bash
+ssh root@192.168.4.42 pct exec 114 -- systemctl start homeservarr-pull.service
+```
+
+To promote CT114 to a full read/write clone later (so the CT114 Jarvis can commit/push directly), add:
+1. A GitHub PAT or SSH deploy key with write scope, stored under `/home/openclaw/.openclaw/secrets/`.
+2. `git config` user identity for the `openclaw` user.
+3. A credential helper referencing the secret file.
+
+---
+
 ## Common operations
 
 ### Read logs (live)
