@@ -135,6 +135,8 @@ Full setup reference → [`docs/home-assistant.md`](docs/home-assistant.md)
 
 This repo is also the configuration source for **Jarvis**, a Claude Code agent specialised for home lab operations. Skills are defined in `skills/` and invoked from VS Code or `scripts/jarvis_chat.sh`.
 
+The always-on chat/tool gateway (dashboard, Telegram, Signal) runs on LXC 114 — see [`docs/openclaw-ct114.md`](docs/openclaw-ct114.md) for setup, auth, and rebuild instructions.
+
 | Skill | What it does |
 |-------|-------------|
 | `container-patching` | Bulk security updates across all LXCs |
